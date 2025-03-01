@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>食品安全扫描</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked@4.0.0/marked.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #007AFF;
+            --primary-dark: #0062CC;
+            --primary-light: #E5F1FF;
+            --apple-red: #FF3B30;
+            --apple-green: #34C759;
+            --apple-yellow: #FFCC00;
+            --light-bg: #F2F2F7;
+            --light-card: #FFFFFF;
+            --light-text: #1C1C1E;
+            --light-secondary: #8E8E93;
+            --light-border: #E5E5EA;
+            --dark-bg: #1C1C1E;
+            --dark-card: #2C2C2E;
+            --dark-text: #FFFFFF;
+            --dark-secondary: #8E8E93;
+            --dark-border: #38383A;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .dark-mode {
+                --bg-color: var(--dark-bg);
+                --card-bg: var(--dark-card);
+                --text-color: var(--dark-text);
+                --secondary-color: var(--dark-secondary);
+                --border-color: var(--dark-border);
+            }
+        }
+
+        @media (prefers-color-scheme: light) {
+            .light-mode {
+                --bg-color: var(--light-bg);
+                --card-bg: var(--light-card);
+                --text-color: var(--light-text);
+                --secondary-color: var(--light-secondary);
+                --border-color: var(--light-border);
+            }
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', system-ui, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            line-height: 1.5;
+            letter-spacing: -0.01em;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 14px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card-header {
+            padding: 16px 20px;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .card-content {
+            padding: 20px;
+        }
+
+        .btn {
+            border-radius: 10px;
+            font-weight: 500;
+            transition: all 0.2s;
+            letter-spacing: -0.01em;
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background-color: var(--primary-light);
+            color: var(--primary-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: #D8E9FF;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 8px;
+            padding: 4px 8px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-danger {
+            background-color: rgba(255, 59, 48, 0.1);
+            color: var(--apple-red);
+        }
+
+        .badge-warning {
+            background-color: rgba(255, 204, 0, 0.1);
+            color: var(--apple-yellow);
+        }
+
+        .badge-success {
+            background-color: rgba(52, 199, 89, 0.1);
+            color: var(--apple-green);
+        }
+
+        .loading-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid rgba(0, 122, 255, 0.1);
+            border-top-color: var(--primary-color);
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .image-preview {
+            border-radius: 12px;
+            max-height: 240px;
+            object-fit: contain;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        /* Custom Markdown Styling */
+        .markdown h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .markdown h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-top: 1.25rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .markdown h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .markdown p {
+            margin-bottom: 1rem;
+        }
+        
+        .markdown ul, .markdown ol {
+            margin-bottom: 1rem;
+            padding-left: 1.5rem;
+        }
+        
+        .markdown li {
+            margin-bottom: 0.25rem;
+        }
+        
+        .markdown strong {
+            font-weight: 600;
+        }
+        
+        .markdown blockquote {
+            border-left: 4px solid var(--primary-color);
+            padding-left: 1rem;
+            color: var(--secondary-color);
+            margin: 1rem 0;
+        }
+        
+        /* Additives highlight */
+        .harmful-additive {
+            background-color: rgba(255, 59, 48, 0.1);
+            padding: 2px 4px;
+            border-radius: 4px;
+            color: var(--apple-red);
+        }
+        
+        /* Modal styles */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        
+        .modal.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .modal-content {
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            background-color: var(--card-bg);
+            border-radius: 14px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        
+        /* Form Input Styles */
+        .form-input {
+            width: 100%;
+            border: 1px solid var(--border-color);
+            background-color: transparent;
+            color: var(--text-color);
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 16px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        
+        .form-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+            outline: none;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+        
+        .form-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%238E8E93' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+            padding-right: 40px;
+        }
+    </style>
+</head>
+<body class="dark-mode light-mode min-h-screen px-4 py-6">
+    <main class="max-w-md mx-auto">
+        <header class="text-center mb-6 relative">
+            <button id="settingsBtn" class="absolute right-0 top-0 p-2 text-secondary-color" aria-label="设置">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+            </button>
+            <h1 class="text-2xl font-bold mb-2">食品安全扫描</h1>
+            <p class="text-sm text-secondary-color">扫描食品配料表，识别添加剂，获取安全建议</p>
+        </header>
+
+        <div class="card mb-6">
+            <div class="card-header">拍摄或上传配料表</div>
+            <div class="card-content">
+                <p class="text-sm text-secondary-color mb-4">请上传清晰的食品包装配料表照片，我们将识别其中的成分并分析安全性</p>
+                
+                <div class="grid grid-cols-2 gap-3 mb-5">
+                    <button id="takePhotoBtn" class="btn btn-primary py-3 px-4 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                            <circle cx="12" cy="13" r="4"></circle>
+                        </svg>
+                        拍照
+                    </button>
+                    <button id="uploadBtn" class="btn btn-secondary py-3 px-4 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        上传图片
+                    </button>
+                </div>
+                <input type="file" id="fileInput" accept="image/*" class="hidden">
+                
+                <div id="previewContainer" class="hidden mb-5">
+                    <div class="relative rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800">
+                        <img id="imagePreview" class="w-full image-preview" src="" alt="配料表预览">
+                        <button id="removeImageBtn" class="absolute top-2 right-2 bg-black bg-opacity-70 text-white rounded-full p-1.5 w-8 h-8 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <button id="analyzeBtn" class="w-full btn btn-primary py-3.5 px-4 text-base flex items-center justify-center" disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    分析配料表
+                </button>
+            </div>
+        </div>
+
+        <div id="loadingSection" class="hidden card mb-6 fade-in">
+            <div class="card-content flex flex-col items-center justify-center py-8">
+                <div class="w-16 h-16 mb-4 relative">
+                    <div class="absolute inset-0 animate-pulse bg-primary-color bg-opacity-10 rounded-full"></div>
+                    <svg class="w-full h-full text-primary-color animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </div>
+                <h3 class="font-semibold text-xl mb-1">正在分析...</h3>
+                <p class="text-secondary-color text-sm text-center max-w-xs">
+                    正在识别食品配料表并分析添加剂安全性，这可能需要几秒钟
+                </p>
+            </div>
+        </div>
+
+        <div id="resultSection" class="hidden fade-in">
+            <div class="card mb-6">
+                <div class="card-header flex items-center justify-between">
+                    <span>分析结果</span>
+                    <div id="healthRating" class="flex"></div>
+                </div>
+                <div class="card-content">
+                    <div id="resultContent" class="markdown"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <div class="card-header flex justify-between items-center">
+                <span>应用设置</span>
+                <button id="closeSettingsBtn" class="text-secondary-color p-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="card-content">
+                <form id="settingsForm">
+                    <!-- API 提供商选择 -->
+                    <div class="mb-5">
+                        <label for="apiProvider" class="form-label">API 提供商</label>
+                        <select id="apiProvider" class="form-input form-select">
+                            <option value="openai">OpenAI</option>
+                            <option value="azure">Azure OpenAI</option>
+                            <option value="anthropic">Anthropic (Claude)</option>
+                            <option value="gemini">Google Gemini</option>
+                            <option value="deepseek">DeepSeek</option>
+                        </select>
+                    </div>
+                    
+                    <!-- API 密钥 -->
+                    <div class="mb-5">
+                        <label for="apiKey" class="form-label">API 密钥</label>
+                        <input type="password" id="apiKey" class="form-input" placeholder="输入您的 API 密钥">
+                        <p class="text-xs text-secondary-color mt-1">您的密钥将安全保存在本地，不会发送到其他服务器</p>
+                    </div>
+                    
+                    <!-- 模型选择 -->
+                    <div class="mb-5">
+                        <label for="modelName" class="form-label">AI 模型</label>
+                        <select id="modelName" class="form-input form-select">
+                            <option value="gpt-4">GPT-4</option>
+                            <option value="gpt-4o">GPT-4o</option>
+                            <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                            <option value="claude-3-opus">Claude 3 Opus</option>
+                            <option value="claude-3-sonnet">Claude 3 Sonnet</option>
+                        </select>
+                    </div>
+                    
+                    <!-- API 端点 (对于 Azure) -->
+                    <div id="azureEndpointContainer" class="mb-5 hidden">
+                        <label for="azureEndpoint" class="form-label">Azure API 端点</label>
+                        <input type="text" id="azureEndpoint" class="form-input" placeholder="https://your-resource.openai.azure.com/">
+                    </div>
+                    
+                    <!-- 高级选项切换 -->
+                    <div class="mb-3">
+                        <button type="button" id="toggleAdvancedBtn" class="text-primary-color text-sm flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                            高级选项
+                        </button>
+                    </div>
+                    
+                    <!-- 高级选项区域 -->
+                    <div id="advancedOptions" class="hidden mb-5 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <div class="mb-4">
+                            <label for="maxTokens" class="form-label">最大令牌数</label>
+                            <input type="number" id="maxTokens" class="form-input" value="2000" min="100" max="8000">
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="temperature" class="form-label">温度 (创造性)</label>
+                            <input type="range" id="temperature" min="0" max="2" step="0.1" value="0.7" class="w-full">
+                            <div class="flex justify-between text-xs text-secondary-color">
+                                <span>精确</span>
+                                <span id="temperatureValue">0.7</span>
+                                <span>创造性</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-3 mt-6">
+                        <button type="button" id="resetSettingsBtn" class="btn btn-secondary py-2 px-4">重置</button>
+                        <button type="submit" class="btn btn-primary py-2 px-4">保存设置</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elements
+            const fileInput = document.getElementById('fileInput');
+            const uploadBtn = document.getElementById('uploadBtn');
+            const takePhotoBtn = document.getElementById('takePhotoBtn');
+            const imagePreview = document.getElementById('imagePreview');
+            const previewContainer = document.getElementById('previewContainer');
+            const removeImageBtn = document.getElementById('removeImageBtn');
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            const loadingSection = document.getElementById('loadingSection');
+            const resultSection = document.getElementById('resultSection');
+            const resultContent = document.getElementById('resultContent');
+            const healthRating = document.getElementById('healthRating');
+            
+            // Settings elements
+            const settingsBtn = document.getElementById('settingsBtn');
+            const settingsModal = document.getElementById('settingsModal');
+            const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+            const settingsForm = document.getElementById('settingsForm');
+            const apiProvider = document.getElementById('apiProvider');
+            const apiKey = document.getElementById('apiKey');
+            const modelName = document.getElementById('modelName');
+            const azureEndpointContainer = document.getElementById('azureEndpointContainer');
+            const azureEndpoint = document.getElementById('azureEndpoint');
+            const toggleAdvancedBtn = document.getElementById('toggleAdvancedBtn');
+            const advancedOptions = document.getElementById('advancedOptions');
+            const maxTokens = document.getElementById('maxTokens');
+            const temperature = document.getElementById('temperature');
+            const temperatureValue = document.getElementById('temperatureValue');
+            const resetSettingsBtn = document.getElementById('resetSettingsBtn');
+            
+            let selectedFile = null;
+            
+            // 默认设置
+            const defaultSettings = {
+                apiProvider: 'openai',
+                apiKey: '',
+                modelName: 'gpt-4',
+                azureEndpoint: '',
+                maxTokens: 2000,
+                temperature: 0.7,
+                usePoeApi: true // 是否使用 Poe API (如果可用)
+            };
+            
+            // Event handlers
+            uploadBtn.addEventListener('click', () => {
+                fileInput.click();
+            });
+            
+            takePhotoBtn.addEventListener('click', () => {
+                // 使用专门的camera capture方式，确保打开相机而不是上传图片
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    // 创建临时视频和拍照界面
+                    const cameraModal = document.createElement('div');
+                    cameraModal.className = 'modal show';
+                    cameraModal.innerHTML = `
+                        <div class="modal-content" style="max-width: 100%; width: 100%; height: 100%; max-height: 100%; border-radius: 0; display: flex; flex-direction: column;">
+                            <div class="p-4 flex justify-between items-center bg-black text-white">
+                                <span class="font-semibold">拍摄配料表</span>
+                                <button id="closeCameraBtn" class="p-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div style="flex-grow: 1; position: relative; background: #000;">
+                                <video id="cameraPreview" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
+                                <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+                                    <div class="border-2 border-dashed border-white rounded-lg w-4/5 h-3/5 opacity-50"></div>
+                                </div>
+                            </div>
+                            <div class="p-4 bg-black flex justify-center">
+                                <button id="takePictureBtn" class="rounded-full bg-white w-16 h-16 flex items-center justify-center">
+                                    <div class="rounded-full bg-white w-14 h-14 border-2 border-black"></div>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    document.body.appendChild(cameraModal);
+                    
+                    const video = document.getElementById('cameraPreview');
+                    const closeCameraBtn = document.getElementById('closeCameraBtn');
+                    const takePictureBtn = document.getElementById('takePictureBtn');
+                    
+                    // 关闭相机
+                    const closeCamera = () => {
+                        if (video.srcObject) {
+                            const tracks = video.srcObject.getTracks();
+                            tracks.forEach(track => track.stop());
+                            video.srcObject = null;
+                        }
+                        cameraModal.remove();
+                    };
+                    
+                    closeCameraBtn.addEventListener('click', closeCamera);
+                    
+                    // 打开相机
+                    navigator.mediaDevices.getUserMedia({ 
+                        video: { 
+                            facingMode: "environment",
+                            width: { ideal: 1920 },
+                            height: { ideal: 1080 }
+                        } 
+                    })
+                    .then(stream => {
+                        video.srcObject = stream;
+                        
+                        // 拍照按钮
+                        takePictureBtn.addEventListener('click', () => {
+                            // 创建临时canvas来捕获图像
+                            const canvas = document.createElement('canvas');
+                            canvas.width = video.videoWidth;
+                            canvas.height = video.videoHeight;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                            
+                            // 转换为Blob
+                            canvas.toBlob(blob => {
+                                selectedFile = new File([blob], "camera-image.jpg", { 
+                                    type: "image/jpeg" 
+                                });
+                                
+                                // 显示预览图
+                                const reader = new FileReader();
+                                reader.onload = function(e) {
+                                    imagePreview.src = e.target.result;
+                                    previewContainer.classList.remove('hidden');
+                                    analyzeBtn.disabled = false;
+                                };
+                                reader.readAsDataURL(selectedFile);
+                                
+                                // 关闭相机
+                                closeCamera();
+                            }, 'image/jpeg', 0.9);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('无法访问相机:', error);
+                        closeCamera();
+                        // 降级为普通文件上传
+                        fileInput.click();
+                    });
+                } else {
+                    // 降级为普通文件上传
+                    fileInput.setAttribute('capture', 'environment');
+                    fileInput.click();
+                    setTimeout(() => fileInput.removeAttribute('capture'), 1000);
+                }
+            });
+            
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    selectedFile = e.target.files[0];
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        imagePreview.src = e.target.result;
+                        previewContainer.classList.remove('hidden');
+                        analyzeBtn.disabled = false;
+                    };
+                    
+                    reader.readAsDataURL(selectedFile);
+                }
+            });
+            
+            removeImageBtn.addEventListener('click', () => {
+                imagePreview.src = '';
+                previewContainer.classList.add('hidden');
+                fileInput.value = '';
+                selectedFile = null;
+                analyzeBtn.disabled = true;
+            });
+            
+            // Function to create star rating
+            function renderHealthRating(rating) {
+                healthRating.innerHTML = '';
+                
+                // Convert rating to number if it's a string
+                const numRating = typeof rating === 'string' 
+                    ? parseInt(rating.charAt(0)) 
+                    : rating;
+                
+                // Create 5 stars
+                for (let i = 1; i <= 5; i++) {
+                    const star = document.createElement('span');
+                    star.className = 'text-lg';
+                    
+                    // Filled or empty star based on rating
+                    star.innerHTML = i <= numRating 
+                        ? '★' 
+                        : '☆';
+                    
+                    // Color based on rating
+                    if (numRating <= 2) {
+                        star.className += ' text-red-500';
+                    } else if (numRating === 3) {
+                        star.className += ' text-yellow-500';
+                    } else {
+                        star.className += ' text-green-500';
+                    }
+                    
+                    healthRating.appendChild(star);
+                }
+            }
+            
+            // Function to highlight harmful additives in the output
+            function highlightHarmfulAdditives(content) {
+                // Create a temporary element to parse the HTML
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = content;
+                
+                // Words that might indicate harmful additives being discussed
+                const harmfulKeywords = [
+                    "有害", "危害", "风险", "不安全", "不健康", "警告", 
+                    "危险", "致癌", "过敏", "中毒", "不建议", "避免食用",
+                    "慎用", "少量食用", "副作用", "问题"
+                ];
+                
+                // Find potential paragraphs that talk about harmful additives
+                const allParagraphs = tempDiv.getElementsByTagName('p');
+                for (let p of allParagraphs) {
+                    for (const keyword of harmfulKeywords) {
+                        if (p.textContent.includes(keyword)) {
+                            // Create a span to wrap the paragraph with a highlight class
+                            const wrapper = document.createElement('div');
+                            wrapper.className = 'p-3 my-3 bg-red-50 dark:bg-red-900 dark:bg-opacity-20 rounded-lg border-l-4 border-red-500';
+                            
+                            // Clone the paragraph to preserve its content
+                            const clone = p.cloneNode(true);
+                            wrapper.appendChild(clone);
+                            
+                            // Replace the original paragraph with the wrapped version
+                            p.parentNode.replaceChild(wrapper, p);
+                            break;
+                        }
+                    }
+                }
+                
+                return tempDiv.innerHTML;
+            }
+            
+            // 设置相关的功能
+            settingsBtn.addEventListener('click', () => {
+                settingsModal.classList.add('show');
+                loadSettings();
+            });
+            
+            closeSettingsBtn.addEventListener('click', () => {
+                settingsModal.classList.remove('show');
+            });
+            
+            // 点击模态框外部关闭
+            settingsModal.addEventListener('click', (e) => {
+                if (e.target === settingsModal) {
+                    settingsModal.classList.remove('show');
+                }
+            });
+            
+            // 显示/隐藏高级选项
+            toggleAdvancedBtn.addEventListener('click', () => {
+                const isHidden = advancedOptions.classList.contains('hidden');
+                if (isHidden) {
+                    advancedOptions.classList.remove('hidden');
+                    toggleAdvancedBtn.querySelector('svg').style.transform = 'rotate(180deg)';
+                } else {
+                    advancedOptions.classList.add('hidden');
+                    toggleAdvancedBtn.querySelector('svg').style.transform = 'rotate(0)';
+                }
+            });
+            
+            // 动态更新温度值显示
+            temperature.addEventListener('input', () => {
+                temperatureValue.textContent = temperature.value;
+            });
+            
+            // 根据选择的API提供商显示/隐藏相关字段
+            apiProvider.addEventListener('change', () => {
+                updateApiProviderUI();
+            });
+            
+            function updateApiProviderUI() {
+                // 显示/隐藏Azure端点
+                if (apiProvider.value === 'azure') {
+                    azureEndpointContainer.classList.remove('hidden');
+                } else {
+                    azureEndpointContainer.classList.add('hidden');
+                }
+                
+                // 更新模型选项
+                updateModelOptions();
+            }
+            
+            function updateModelOptions() {
+                const provider = apiProvider.value;
+                modelName.innerHTML = '';
+                
+                if (provider === 'openai') {
+                    addModelOption('gpt-4', 'GPT-4');
+                    addModelOption('gpt-4o', 'GPT-4o');
+                    addModelOption('gpt-3.5-turbo', 'GPT-3.5 Turbo');
+                } else if (provider === 'anthropic') {
+                    addModelOption('claude-3-opus-20240229', 'Claude 3 Opus');
+                    addModelOption('claude-3-sonnet-20240229', 'Claude 3 Sonnet');
+                    addModelOption('claude-3-haiku-20240307', 'Claude 3 Haiku');
+                } else if (provider === 'azure') {
+                    addModelOption('gpt-4', 'GPT-4');
+                    addModelOption('gpt-35-turbo', 'GPT-3.5 Turbo');
+                } else if (provider === 'gemini') {
+                    addModelOption('gemini-1.5-pro', 'Gemini 1.5 Pro');
+                    addModelOption('gemini-1.5-flash', 'Gemini 1.5 Flash');
+                    addModelOption('gemini-1.0-pro', 'Gemini 1.0 Pro');
+                } else if (provider === 'deepseek') {
+                    addModelOption('deepseek-vision', 'DeepSeek Vision');
+                    addModelOption('deepseek-coder-v2', 'DeepSeek Coder v2');
+                }
+            }
+            
+            function addModelOption(value, text) {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = text;
+                modelName.appendChild(option);
+            }
+            
+            // 保存设置
+            settingsForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                const settings = {
+                    apiProvider: apiProvider.value,
+                    apiKey: apiKey.value,
+                    modelName: modelName.value,
+                    azureEndpoint: azureEndpoint.value,
+                    maxTokens: parseInt(maxTokens.value),
+                    temperature: parseFloat(temperature.value),
+                    usePoeApi: apiKey.value === '' // 如果没有提供API密钥，使用Poe API
+                };
+                
+                localStorage.setItem('foodScannerSettings', JSON.stringify(settings));
+                
+                // 显示保存成功消息
+                const successMsg = document.createElement('div');
+                successMsg.className = 'fade-in p-2 mb-3 bg-green-50 dark:bg-green-900 dark:bg-opacity-20 text-green-600 dark:text-green-400 rounded-lg text-center text-sm';
+                successMsg.textContent = '设置已保存';
+                
+                const form = document.getElementById('settingsForm');
+                form.insertBefore(successMsg, form.firstChild);
+                
+                // 3秒后移除消息
+                setTimeout(() => {
+                    successMsg.remove();
+                }, 3000);
+            });
+            
+            // 重置设置
+            resetSettingsBtn.addEventListener('click', () => {
+                if (confirm('确定要重置所有设置吗？这将删除您保存的API密钥和其他设置。')) {
+                    localStorage.removeItem('foodScannerSettings');
+                    loadSettings(); // 重新加载默认设置
+                }
+            });
+            
+            // 加载设置
+            function loadSettings() {
+                let settings = defaultSettings;
+                const savedSettings = localStorage.getItem('foodScannerSettings');
+                
+                if (savedSettings) {
+                    settings = JSON.parse(savedSettings);
+                }
+                
+                apiProvider.value = settings.apiProvider || defaultSettings.apiProvider;
+                updateApiProviderUI();
+                
+                apiKey.value = settings.apiKey || '';
+                if (settings.modelName) {
+                    // 确保该模型在当前选项中
+                    const modelExists = Array.from(modelName.options).some(option => option.value === settings.modelName);
+                    if (modelExists) {
+                        modelName.value = settings.modelName;
+                    }
+                }
+                
+                azureEndpoint.value = settings.azureEndpoint || '';
+                maxTokens.value = settings.maxTokens || defaultSettings.maxTokens;
+                temperature.value = settings.temperature || defaultSettings.temperature;
+                temperatureValue.textContent = temperature.value;
+                
+                // 检查是否显示高级选项
+                if (savedSettings && (settings.maxTokens !== defaultSettings.maxTokens || settings.temperature !== defaultSettings.temperature)) {
+                    advancedOptions.classList.remove('hidden');
+                    toggleAdvancedBtn.querySelector('svg').style.transform = 'rotate(180deg)';
+                }
+            }
+            
+            // 分析按钮点击处理
+            analyzeBtn.addEventListener('click', async () => {
+                if (!selectedFile) return;
+                
+                // 获取当前设置
+                const settings = getSettings();
+                
+                // 显示加载状态
+                loadingSection.classList.remove('hidden');
+                resultSection.classList.add('hidden');
+                analyzeBtn.disabled = true;
+                
+                try {
+                    // 如果使用Poe API
+                    if (settings.usePoeApi && window.Poe) {
+                        await analyzeWithPoeApi(selectedFile);
+                    } else {
+                        // 使用自定义API
+                        await analyzeWithCustomApi(selectedFile, settings);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    showError('分析过程中出现错误，请重试。');
+                    loadingSection.classList.add('hidden');
+                    analyzeBtn.disabled = false;
+                }
+            });
+            
+            // 使用Poe API进行分析
+            async function analyzeWithPoeApi(file) {
+                // Register handler for Claude's response
+                window.Poe.registerHandler('food-analysis-handler', (result, context) => {
+                    // Hide loading state when we get a response
+                    loadingSection.classList.add('hidden');
+                    
+                    const response = result.responses[0];
+                    
+                    if (response.status === 'error') {
+                        showError('分析过程中出现错误，请重试。');
+                        analyzeBtn.disabled = false;
+                        return;
+                    }
+                    
+                    if (response.status === 'complete' || response.status === 'incomplete') {
+                        // Parse the markdown content
+                        let parsedContent = marked.parse(response.content);
+                        
+                        // Highlight any harmful additives mentioned
+                        parsedContent = highlightHarmfulAdditives(parsedContent);
+                        
+                        // Display the result
+                        resultContent.innerHTML = parsedContent;
+                        
+                        // Try to extract health rating from the response
+                        const ratingMatch = response.content.match(/健康评级[：:]\s*(\d)[颗⭐星]/);
+                        if (ratingMatch && ratingMatch[1]) {
+                            renderHealthRating(parseInt(ratingMatch[1]));
+                        } else {
+                            // Default to no stars if we can't find a rating
+                            renderHealthRating(0);
+                        }
+                        
+                        resultSection.classList.remove('hidden');
+                        
+                        // If response is complete, enable the analyze button again
+                        if (response.status === 'complete') {
+                            analyzeBtn.disabled = false;
+                        }
+                    }
+                });
+                
+                // Create object to be sent as attachment
+                const fileToSend = new File([file], file.name, {
+                    type: file.type
+                });
+                
+                // Send the image to Claude for analysis with improved prompt
+                await window.Poe.sendUserMessage(
+                    "@Claude-3.7-Sonnet 请分析这张食品配料表图片，并提供以下信息：\n" +
+                    "1. 识别出的主要配料清单\n" +
+                    "2. 该食品中的添加剂成分及其作用\n" +
+                    "3. **重点分析**：食品中的任何有害添加剂或不健康成分，详细解释其潜在风险和对健康的影响\n" +
+                    "4. 该食品可能含有的常见过敏原\n" +
+                    "5. 对特殊人群（如孕妇、儿童、老人、糖尿病患者等）的适宜性建议\n" +
+                    "6. 基于配料表的健康评级（1-5星，5星最健康）\n" +
+                    "7. 总体食用建议和注意事项\n\n" +
+                    "请将你的回答格式化为Markdown格式，确保在回答中使用markdown结构，以便我可以清晰地展示给用户。当提到有害成分时，请使用加粗或其他markdown格式突出显示。",
+                    {
+                        attachments: [fileToSend],
+                        handler: 'food-analysis-handler',
+                        stream: true,
+                        openChat: false
+                    }
+                );
+            }
+            
+            // 使用自定义API进行分析
+            async function analyzeWithCustomApi(file, settings) {
+                // 转换图片为base64
+                const base64Image = await fileToBase64(file);
+                
+                // 分析提示文本
+                const promptText = "请分析这张食品配料表图片，并提供以下信息：\n" +
+                              "1. 识别出的主要配料清单\n" +
+                              "2. 该食品中的添加剂成分及其作用\n" +
+                              "3. **重点分析**：食品中的任何有害添加剂或不健康成分，详细解释其潜在风险和对健康的影响\n" +
+                              "4. 该食品可能含有的常见过敏原\n" +
+                              "5. 对特殊人群（如孕妇、儿童、老人、糖尿病患者等）的适宜性建议\n" +
+                              "6. 基于配料表的健康评级（1-5星，5星最健康）\n" +
+                              "7. 总体食用建议和注意事项\n\n" +
+                              "请将你的回答格式化为Markdown格式，当提到有害成分时，请使用加粗或其他markdown格式突出显示。";
+                
+                // 根据不同API提供商构建请求
+                let apiUrl, requestData, headers;
+                
+                if (settings.apiProvider === 'openai') {
+                    // OpenAI API 请求
+                    apiUrl = 'https://api.openai.com/v1/chat/completions';
+                    headers = {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${settings.apiKey}`
+                    };
+                    requestData = {
+                        model: settings.modelName,
+                        messages: [
+                            {
+                                role: "user",
+                                content: [
+                                    {
+                                        type: "text", 
+                                        text: promptText
+                                    },
+                                    {
+                                        type: "image_url",
+                                        image_url: {
+                                            url: base64Image
+                                        }
+                                    }
+                                ]
+                            }
+                        ],
+                        max_tokens: settings.maxTokens,
+                        temperature: settings.temperature
+                    };
+                } else if (settings.apiProvider === 'anthropic') {
+                    // Anthropic API 请求
+                    apiUrl = 'https://api.anthropic.com/v1/messages';
+                    headers = {
+                        'Content-Type': 'application/json',
+                        'x-api-key': settings.apiKey,
+                        'anthropic-version': '2023-06-01'
+                    };
+                    requestData = {
+                        model: settings.modelName,
+                        messages: [
+                            {
+                                role: "user",
+                                content: [
+                                    {
+                                        type: "text", 
+                                        text: promptText
+                                    },
+                                    {
+                                        type: "image",
+                                        source: {
+                                            type: "base64",
+                                            media_type: file.type,
+                                            data: base64Image.split(',')[1]
+                                        }
+                                    }
+                                ]
+                            }
+                        ],
+                        max_tokens: settings.maxTokens,
+                        temperature: settings.temperature
+                    };
+                } else if (settings.apiProvider === 'azure') {
+                    // Azure OpenAI API 请求
+                    const deploymentName = settings.modelName;
+                    apiUrl = `${settings.azureEndpoint}/openai/deployments/${deploymentName}/chat/completions?api-version=2023-12-01-preview`;
+                    headers = {
+                        'Content-Type': 'application/json',
+                        'api-key': settings.apiKey
+                    };
+                    requestData = {
+                        messages: [
+                            {
+                                role: "user",
+                                content: [
+                                    {
+                                        type: "text", 
+                                        text: promptText
+                                    },
+                                    {
+                                        type: "image_url",
+                                        image_url: {
+                                            url: base64Image
+                                        }
+                                    }
+                                ]
+                            }
+                        ],
+                        max_tokens: settings.maxTokens,
+                        temperature: settings.temperature
+                    };
+                } else if (settings.apiProvider === 'gemini') {
+                    // Google Gemini API 请求
+                    apiUrl = 'https://generativelanguage.googleapis.com/v1/models/' + settings.modelName + ':generateContent';
+                    headers = {
+                        'Content-Type': 'application/json',
+                        'x-goog-api-key': settings.apiKey
+                    };
+                    requestData = {
+                        contents: [
+                            {
+                                role: "user",
+                                parts: [
+                                    {
+                                        text: promptText
+                                    },
+                                    {
+                                        inline_data: {
+                                            mime_type: file.type,
+                                            data: base64Image.split(',')[1]
+                                        }
+                                    }
+                                ]
+                            }
+                        ],
+                        generationConfig: {
+                            maxOutputTokens: settings.maxTokens,
+                            temperature: settings.temperature
+                        }
+                    };
+                } else if (settings.apiProvider === 'deepseek') {
+                    // DeepSeek API 请求
+                    apiUrl = 'https://api.deepseek.com/v1/chat/completions';
+                    headers = {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${settings.apiKey}`
+                    };
+                    requestData = {
+                        model: settings.modelName,
+                        messages: [
+                            {
+                                role: "user",
+                                content: [
+                                    {
+                                        type: "text", 
+                                        text: promptText
+                                    },
+                                    {
+                                        type: "image_url",
+                                        image_url: {
+                                            url: base64Image
+                                        }
+                                    }
+                                ]
+                            }
+                        ],
+                        max_tokens: settings.maxTokens,
+                        temperature: settings.temperature
+                    };
+                }
+                
+                // 发送请求
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: headers,
+                        body: JSON.stringify(requestData)
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    let content = '';
+                    
+                    // 根据不同API提供商提取响应内容
+                    if (settings.apiProvider === 'openai' || settings.apiProvider === 'azure' || settings.apiProvider === 'deepseek') {
+                        content = data.choices[0].message.content;
+                    } else if (settings.apiProvider === 'anthropic') {
+                        content = data.content[0].text;
+                    } else if (settings.apiProvider === 'gemini') {
+                        content = data.candidates[0].content.parts[0].text;
+                    }
+                    
+                    // 处理并显示结果
+                    loadingSection.classList.add('hidden');
+                    
+                    // 解析Markdown
+                    let parsedContent = marked.parse(content);
+                    
+                    // 高亮有害添加剂
+                    parsedContent = highlightHarmfulAdditives(parsedContent);
+                    
+                    // 显示结果
+                    resultContent.innerHTML = parsedContent;
+                    
+                    // 尝试提取健康评级
+                    const ratingMatch = content.match(/健康评级[：:]\s*(\d)[颗⭐星]/);
+                    if (ratingMatch && ratingMatch[1]) {
+                        renderHealthRating(parseInt(ratingMatch[1]));
+                    } else {
+                        renderHealthRating(0);
+                    }
+                    
+                    resultSection.classList.remove('hidden');
+                    analyzeBtn.disabled = false;
+                } catch (error) {
+                    console.error('API请求错误:', error);
+                    showError(`API请求失败: ${error.message}`);
+                    loadingSection.classList.add('hidden');
+                    analyzeBtn.disabled = false;
+                }
+            }
+            
+            // 辅助函数：将File对象转换为base64
+            function fileToBase64(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = error => reject(error);
+                });
+            }
+            
+            // 获取设置
+            function getSettings() {
+                const savedSettings = localStorage.getItem('foodScannerSettings');
+                if (savedSettings) {
+                    return JSON.parse(savedSettings);
+                }
+                return defaultSettings;
+            }
+            
+            function showError(message) {
+                resultContent.innerHTML = `<div class="p-4 bg-red-50 dark:bg-red-900 dark:bg-opacity-20 text-red-600 dark:text-red-400 rounded-lg">${message}</div>`;
+                resultSection.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
