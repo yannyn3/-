@@ -7,7 +7,7 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-// LeanCloud 初始化
+// LeanCloud 初始化 - 使用您的信息
 const APP_ID = '7FtjHQdsLOwzUHDalpm4Ozzq-gzGzoHsz';
 const APP_KEY = 'fjZQfIKXFWoSRZ8MhIcOCWJ2';
 const SERVER_URL = 'https://7ftjhqds.lc-cn-n1-shared.com';
@@ -41,6 +41,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const userTab = document.getElementById('userTab');
     const authTab = document.getElementById('authTab');
     const historyTab = document.getElementById('historyTab');
+    const adminTab = document.getElementById('adminTab');
     const bottomNavItems = document.querySelectorAll('.bottom-nav-item');
     
     // Settings elements
@@ -113,6 +114,27 @@ document.addEventListener('DOMContentLoaded', function() {
     const userSettingsBtn = document.getElementById('userSettingsBtn');
     const aboutBtn = document.getElementById('aboutBtn');
     
+    // Admin elements
+    const adminLoginModal = document.getElementById('adminLoginModal');
+    const adminPassword = document.getElementById('adminPassword');
+    const confirmAdminLoginBtn = document.getElementById('confirmAdminLoginBtn');
+    const cancelAdminLoginBtn = document.getElementById('cancelAdminLoginBtn');
+    const backFromAdminBtn = document.getElementById('backFromAdminBtn');
+    const adminSettingsForm = document.getElementById('adminSettingsForm');
+    const defaultApiProvider = document.getElementById('defaultApiProvider');
+    const defaultModelName = document.getElementById('defaultModelName');
+    const adminApiKey = document.getElementById('adminApiKey');
+    const generateCardsBtn = document.getElementById('generateCardsBtn');
+    const cardPrefix = document.getElementById('cardPrefix');
+    const cardValue = document.getElementById('cardValue');
+    const cardCount = document.getElementById('cardCount');
+    const generatedCards = document.getElementById('generatedCards');
+    const cardsList = document.getElementById('cardsList');
+    const copyCardsBtn = document.getElementById('copyCardsBtn');
+    
+    // Loading element
+    const globalLoading = document.getElementById('globalLoading');
+    
     // Dark mode toggle
     const darkModeToggle = document.getElementById('darkModeToggle');
     
@@ -120,16 +142,20 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentUser = null;
     let selectedPackage = null;
     let selectedPaymentMethod = 'wechat';
+    let logoClickCount = 0; // 管理员入口计数器
+    
+    // 默认管理员密码
+    const DEFAULT_ADMIN_PASSWORD = '123456';
     
     // 默认设置
     const defaultSettings = {
         apiProvider: 'openai',
         apiKey: '',
-        modelName: 'gpt-4',
+        modelName: 'gpt-4o',
         azureEndpoint: '',
         maxTokens: 2000,
         temperature: 0.7,
-        usePoeApi: true // 是否使用默认API
+        usePoeApi: true // 是否使用系统默认API（即Poe API）
     };
     
     // 初始化应用
@@ -138,6 +164,98 @@ document.addEventListener('DOMContentLoaded', function() {
         checkDarkModePreference();
         initPaymentOptions();
         renderCheckinCircles();
+        loadAdminSettings();
+        setupLogoClickHandler();
+    }
+    
+    // 设置Logo点击处理 (管理员入口)
+    function setupLogoClickHandler() {
+        const appTitle = document.querySelector('h1');
+        if (appTitle) {
+            appTitle.addEventListener('click', function() {
+                logoClickCount++;
+                if (logoClickCount >= 5) {
+                    logoClickCount = 0;
+                    adminLoginModal.classList.add('show');
+                }
+            });
+        }
+    }
+    
+    // 加载管理员设置
+    function loadAdminSettings() {
+        const savedSettings = localStorage.getItem('adminSettings');
+        if (savedSettings) {
+            const settings = JSON.parse(savedSettings);
+            if (defaultApiProvider) defaultApiProvider.value = settings.defaultApiProvider || 'openai';
+            if (defaultModelName) defaultModelName.value = settings.defaultModelName || 'gpt-4o';
+            if (adminApiKey) adminApiKey.value = settings.adminApiKey || '';
+        }
+    }
+    
+    // 保存管理员设置
+    function saveAdminSettings() {
+        const settings = {
+            defaultApiProvider: defaultApiProvider ? defaultApiProvider.value : 'openai',
+            defaultModelName: defaultModelName ? defaultModelName.value : 'gpt-4o',
+            adminApiKey: adminApiKey ? adminApiKey.value : ''
+        };
+        
+        localStorage.setItem('adminSettings', JSON.stringify(settings));
+        alert('管理员设置已保存');
+    }
+    
+    // 获取管理员设置的API密钥
+    function getAdminApiKey() {
+        const savedSettings = localStorage.getItem('adminSettings');
+        if (savedSettings) {
+            const settings = JSON.parse(savedSettings);
+            return settings.adminApiKey || '';
+        }
+        return '';
+    }
+    
+    // 显示或隐藏全局加载状态
+    function showLoading() {
+        if (globalLoading) globalLoading.classList.remove('hidden');
+    }
+    
+    function hideLoading() {
+        if (globalLoading) globalLoading.classList.add('hidden');
+    }
+    
+    // 批量生成卡密
+    async function generateCardKeys(prefix, value, count) {
+        showLoading();
+        
+        try {
+            // 生成卡密并保存到LeanCloud
+            const cardKeys = [];
+            
+            for (let i = 0; i < count; i++) {
+                // 生成随机字符串
+                const randomStr = Math.random().toString(36).substring(2, 10).toUpperCase();
+                const code = `${prefix}${randomStr}`;
+                
+                // 创建卡密对象
+                const CardKey = AV.Object.extend('CardKey');
+                const cardKey = new CardKey();
+                
+                cardKey.set('code', code);
+                cardKey.set('value', parseInt(value));
+                cardKey.set('isUsed', false);
+                
+                await cardKey.save();
+                cardKeys.push(code);
+            }
+            
+            return cardKeys;
+        } catch (error) {
+            console.error('生成卡密失败:', error);
+            throw error;
+        } finally {
+            hideLoading();
+        }
     }
     
     // 检查用户登录状态
@@ -518,6 +636,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // 购买按钮点击事件
         const buyButtons = [buyBasicBtn, buyHighBtn, buyYearBtn];
         buyButtons.forEach(btn => {
+            if (!btn) return; // 如果按钮不存在，跳过
+            
             btn.addEventListener('click', () => {
                 const price = btn.getAttribute('data-price');
                 const scans = btn.getAttribute('data-scans');
@@ -543,12 +663,14 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         // 验证支付按钮
-        verifyPaymentBtn.addEventListener('click', () => {
-            // 模拟支付成功
-            if (selectedPackage) {
-                verifyPayment(selectedPackage.type, parseInt(selectedPackage.scans));
-            }
-        });
+        if (verifyPaymentBtn) {
+            verifyPaymentBtn.addEventListener('click', () => {
+                // 模拟支付成功
+                if (selectedPackage) {
+                    verifyPayment(selectedPackage.type, parseInt(selectedPackage.scans));
+                }
+            });
+        }
     }
     
     // 更新支付二维码显示
@@ -600,13 +722,16 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        showLoading();
+        
         // 查询卡密
         const query = new AV.Query('CardKey');
-        query.equalTo('code', code);
+        query.equalTo('code', code.toUpperCase().trim());
         query.equalTo('isUsed', false);
         
         query.first().then(card => {
             if (!card) {
+                hideLoading();
                 alert('卡密无效或已被使用');
                 return;
             }
@@ -622,19 +747,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // 增加用户积分
                 return incrementUserCredits(value).then(() => {
+                    hideLoading();
                     alert(`卡密激活成功，您获得了${value}次分析机会`);
                     document.getElementById('cardKey').value = '';
                 });
             });
         }).catch(error => {
+            hideLoading();
             console.error('卡密验证失败:', error);
             alert('卡密验证失败，请稍后重试');
         });
     }
     
-    // 初始化标签页切换
+    // 初始化标签页切换和按钮事件
     function initTabs() {
-        // 设置点击事件
+        // 设置底部导航点击事件
         bottomNavItems.forEach(item => {
             item.addEventListener('click', () => {
                 const tabName = item.getAttribute('data-tab');
@@ -643,42 +770,139 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         // 商店相关按钮
-        upgradeBtn.addEventListener('click', () => {
-            showTab('shopTab');
-        });
+        if (upgradeBtn) {
+            upgradeBtn.addEventListener('click', () => {
+                showTab('shopTab');
+            });
+        }
         
         // 历史记录按钮
-        historyBtn.addEventListener('click', () => {
-            loadScanHistoryData();
-            showCustomTab('historyTab');
-        });
+        if (historyBtn) {
+            historyBtn.addEventListener('click', () => {
+                loadScanHistoryData();
+                showCustomTab('historyTab');
+            });
+        }
         
         // 返回按钮
-        backFromHistoryBtn.addEventListener('click', () => {
-            showTab('userTab');
-        });
+        if (backFromHistoryBtn) {
+            backFromHistoryBtn.addEventListener('click', () => {
+                showTab('userTab');
+            });
+        }
+        
+        // 管理员页面返回按钮
+        if (backFromAdminBtn) {
+            backFromAdminBtn.addEventListener('click', () => {
+                showTab('homeTab');
+            });
+        }
         
         // 用户设置按钮
-        userSettingsBtn.addEventListener('click', () => {
-            settingsModal.classList.add('show');
-            loadSettings();
-        });
+        if (userSettingsBtn) {
+            userSettingsBtn.addEventListener('click', () => {
+                settingsModal.classList.add('show');
+                loadSettings();
+            });
+        }
         
         // 关于我们按钮
-        aboutBtn.addEventListener('click', () => {
-            alert('食品安全扫描 V1.0\n\n一款帮助您识别食品添加剂和安全风险的工具\n\n© 2023 All Rights Reserved');
-        });
+        if (aboutBtn) {
+            aboutBtn.addEventListener('click', () => {
+                alert('食品安全扫描 V1.0\n\n一款帮助您识别食品添加剂和安全风险的工具\n\n© 2023 All Rights Reserved');
+            });
+        }
         
         // 卡密激活
-        activateCardBtn.addEventListener('click', () => {
-            const cardKey = document.getElementById('cardKey').value;
-            activateCardKey(cardKey);
-        });
+        if (activateCardBtn) {
+            activateCardBtn.addEventListener('click', () => {
+                const cardKey = document.getElementById('cardKey').value;
+                activateCardKey(cardKey);
+            });
+        }
+        
+        // 管理员登录相关
+        if (confirmAdminLoginBtn) {
+            confirmAdminLoginBtn.addEventListener('click', () => {
+                const password = adminPassword.value;
+                if (password === DEFAULT_ADMIN_PASSWORD) {
+                    adminLoginModal.classList.remove('show');
+                    showCustomTab('adminTab');
+                    adminPassword.value = '';
+                } else {
+                    alert('管理员密码错误');
+                }
+            });
+        }
+        
+        if (cancelAdminLoginBtn) {
+            cancelAdminLoginBtn.addEventListener('click', () => {
+                adminLoginModal.classList.remove('show');
+                adminPassword.value = '';
+            });
+        }
+        
+        // 管理员设置表单提交
+        if (adminSettingsForm) {
+            adminSettingsForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                saveAdminSettings();
+            });
+        }
+        
+        // 生成卡密按钮
+        if (generateCardsBtn) {
+            generateCardsBtn.addEventListener('click', async () => {
+                const prefix = cardPrefix.value || 'FS-';
+                const value = parseInt(cardValue.value) || 30;
+                const count = parseInt(cardCount.value) || 5;
+                
+                if (count > 20) {
+                    alert('一次最多生成20个卡密');
+                    return;
+                }
+                
+                try {
+                    const cardKeys = await generateCardKeys(prefix, value, count);
+                    
+                    // 显示生成的卡密
+                    generatedCards.classList.remove('hidden');
+                    cardsList.innerHTML = '';
+                    
+                    cardKeys.forEach(key => {
+                        const div = document.createElement('div');
+                        div.className = 'mb-1';
+                        div.textContent = key;
+                        cardsList.appendChild(div);
+                    });
+                } catch (error) {
+                    alert('生成卡密失败: ' + error.message);
+                }
+            });
+        }
+        
+        // 复制卡密按钮
+        if (copyCardsBtn) {
+            copyCardsBtn.addEventListener('click', () => {
+                const cardTexts = Array.from(cardsList.children).map(div => div.textContent).join('\n');
+                navigator.clipboard.writeText(cardTexts).then(() => {
+                    alert('卡密已复制到剪贴板');
+                }).catch(err => {
+                    console.error('复制失败:', err);
+                    alert('复制失败，请手动复制');
+                });
+            });
+        }
         
         // 支付成功关闭按钮
-        closePaymentSuccessBtn.addEventListener('click', () => {
-            paymentSuccessModal.classList.remove('show');
-        });
+        if (closePaymentSuccessBtn) {
+            closePaymentSuccessBtn.addEventListener('click', () => {
+                paymentSuccessModal.classList.remove('show');
+            });
+        }
+        
+        // 登录和注册表单
+        setupAuthForms();
     }
 
     // 显示特定标签页
@@ -695,18 +919,24 @@ document.addEventListener('DOMContentLoaded', function() {
         hideAllTabs();
         
         // 显示选中的tab
-        document.getElementById(tabName).classList.remove('hidden');
+        const selectedTab = document.getElementById(tabName);
+        if (selectedTab) {
+            selectedTab.classList.remove('hidden');
+        }
     }
     
     // 显示自定义标签页(不在底部导航中的页面)
     function showCustomTab(tabName) {
         hideAllTabs();
-        document.getElementById(tabName).classList.remove('hidden');
+        const selectedTab = document.getElementById(tabName);
+        if (selectedTab) {
+            selectedTab.classList.remove('hidden');
+        }
     }
     
     // 隐藏所有标签页
     function hideAllTabs() {
-        const allTabs = [homeTab, shopTab, userTab, authTab, historyTab];
+        const allTabs = document.querySelectorAll('[id$="Tab"]');
         allTabs.forEach(tab => {
             if (tab) tab.classList.add('hidden');
         });
@@ -1088,6 +1318,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
+    adminLoginModal.addEventListener('click', (e) => {
+        if (e.target === adminLoginModal) {
+            adminLoginModal.classList.remove('show');
+        }
+    });
+    
     // 显示/隐藏高级选项
     toggleAdvancedBtn.addEventListener('click', () => {
         const isHidden = advancedOptions.classList.contains('hidden');
@@ -1246,17 +1482,19 @@ document.addEventListener('DOMContentLoaded', function() {
         // 检查是否有足够的分析次数或API配置
         const settings = getSettings();
         const hasCustomApi = settings.apiKey && settings.apiKey.length > 0;
+        const adminApiKey = getAdminApiKey();
+        const hasAdminApi = adminApiKey && adminApiKey.length > 0;
         const creditsAvailable = getUserCredits() > 0;
         
-        if (!hasCustomApi && !creditsAvailable) {
+        if (!hasCustomApi && !hasAdminApi && !creditsAvailable) {
             // 显示提示用户购买或配置API的弹窗
             usageExhaustedModal.classList.add('show');
             return;
         }
         
         // 如果使用免费额度，减少使用次数
-        if (!hasCustomApi) {
-            decrementUserCredits();
+        if (!hasCustomApi && !hasAdminApi) {
+            await decrementUserCredits();
         }
         
         // 显示加载状态
@@ -1265,12 +1503,23 @@ document.addEventListener('DOMContentLoaded', function() {
         analyzeBtn.disabled = true;
         
         try {
-            // 如果使用默认API
-            if (settings.usePoeApi && window.Poe) {
-                await analyzeWithPoeApi(selectedFile);
-            } else {
-                // 使用自定义API
+            // 如果用户没有设置自己的API，但管理员设置了API，则使用管理员的API
+            if (!hasCustomApi && hasAdminApi) {
+                // 使用管理员API
+                await analyzeWithAdminApi(selectedFile);
+            }
+            // 如果用户设置了自己的API，使用用户的API
+            else if (hasCustomApi) {
+                // 使用用户自定义API
                 await analyzeWithCustomApi(selectedFile, settings);
+            }
+            // 如果上述都没有，但有使用次数，使用Poe API
+            else if (creditsAvailable && window.Poe) {
+                await analyzeWithPoeApi(selectedFile);
+            }
+            // 所有API都不可用，但显示Demo结果
+            else {
+                showMockedResult();
             }
         } catch (error) {
             console.error('Error:', error);
@@ -1279,6 +1528,28 @@ document.addEventListener('DOMContentLoaded', function() {
             analyzeBtn.disabled = false;
         }
     });
+    
+    // 使用管理员API进行分析
+    async function analyzeWithAdminApi(file) {
+        const adminSettings = localStorage.getItem('adminSettings');
+        if (!adminSettings) {
+            throw new Error('管理员API设置不存在');
+        }
+        
+        const settings = JSON.parse(adminSettings);
+        
+        // 创建一个自定义设置对象
+        const customSettings = {
+            apiProvider: settings.defaultApiProvider || 'openai',
+            apiKey: settings.adminApiKey,
+            modelName: settings.defaultModelName || 'gpt-4o',
+            temperature: 0.7,
+            maxTokens: 2000
+        };
+        
+        // 使用自定义API进行分析
+        return analyzeWithCustomApi(file, customSettings);
+    }
     
     // 使用Poe API进行分析
     async function analyzeWithPoeApi(file) {
@@ -1407,8 +1678,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                 ]
                             }
                         ],
-                        max_tokens: settings.maxTokens,
-                        temperature: settings.temperature
+                        max_tokens: settings.maxTokens || 2000,
+                        temperature: settings.temperature || 0.7
                     };
                     break;
                 case 'anthropic':
@@ -1440,8 +1711,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                 ]
                             }
                         ],
-                        max_tokens: settings.maxTokens,
-                        temperature: settings.temperature
+                        max_tokens: settings.maxTokens || 2000,
+                        temperature: settings.temperature || 0.7
                     };
                     break;
                 case 'azure':
@@ -1470,8 +1741,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                 ]
                             }
                         ],
-                        max_tokens: settings.maxTokens,
-                        temperature: settings.temperature
+                        max_tokens: settings.maxTokens || 2000,
+                        temperature: settings.temperature || 0.7
                     };
                     break;
                 case 'gemini':
@@ -1499,8 +1770,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
                         ],
                         generationConfig: {
-                            maxOutputTokens: settings.maxTokens,
-                            temperature: settings.temperature
+                            maxOutputTokens: settings.maxTokens || 2000,
+                            temperature: settings.temperature || 0.7
                         }
                     };
                     break;
@@ -1530,8 +1801,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                 ]
                             }
                         ],
-                        max_tokens: settings.maxTokens,
-                        temperature: settings.temperature
+                        max_tokens: settings.maxTokens || 2000,
+                        temperature: settings.temperature || 0.7
                     };
                     break;
                 default:
@@ -1675,6 +1946,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 注册相关事件
     function setupAuthForms() {
+        if (!loginForm || !registerForm || !showRegisterBtn || !showLoginBtn) return;
+        
         // 切换登录/注册表单
         showRegisterBtn.addEventListener('click', () => {
             loginForm.classList.add('hidden');
@@ -1689,6 +1962,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // 登录表单提交
         loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
+            showLoading();
+            
             const username = document.getElementById('loginUsername').value;
             const password = document.getElementById('loginPassword').value;
             
@@ -1697,7 +1972,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 currentUser = user;
                 checkUserSession();
                 showTab('homeTab');
+                hideLoading();
             }).catch(error => {
+                hideLoading();
                 alert('登录失败: ' + error.message);
             });
         });
@@ -1705,6 +1982,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // 注册表单提交
         registerForm.addEventListener('submit', (e) => {
             e.preventDefault();
+            showLoading();
+            
             const username = document.getElementById('regUsername').value;
             const password = document.getElementById('regPassword').value;
             const phone = document.getElementById('regPhone').value;
@@ -1713,15 +1992,22 @@ document.addEventListener('DOMContentLoaded', function() {
             const user = new AV.User();
             user.setUsername(username);
             user.setPassword(password);
-            user.setMobilePhoneNumber(phone);
+            if (phone) {
+                user.setMobilePhoneNumber(phone);
+            }
+            
+            // 设置初始积分
+            user.set('credits', 3); // 新用户赠送3次使用次数
             
             user.signUp().then(user => {
                 // 注册成功
-                alert('注册成功');
+                hideLoading();
+                alert('注册成功，已赠送3次使用次数');
                 currentUser = user;
                 checkUserSession();
                 showTab('homeTab');
             }).catch(error => {
+                hideLoading();
                 alert('注册失败: ' + error.message);
             });
         });
@@ -1730,5 +2016,4 @@ document.addEventListener('DOMContentLoaded', function() {
     // 初始化
     initApp();
     initTabs();
-    setupAuthForms();
 });
