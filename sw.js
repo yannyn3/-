@@ -1,5 +1,5 @@
-// 简单的Service Worker示例
-const CACHE_NAME = 'food-scanner-v1';
+// Service Worker配置
+const CACHE_NAME = 'food-scan-v1';
 
 const ASSETS_TO_CACHE = [
   '/',
@@ -8,11 +8,7 @@ const ASSETS_TO_CACHE = [
   '/app.js',
   '/manifest.json',
   '/icon-192x192.png',
-  '/icon-512x512.png',
-  '/wxpay.png',
-  '/alipay.png',
-  '/wxpay-icon.png',
-  '/alipay-icon.png'
+  '/icon-512x512.png'
 ];
 
 // 安装Service Worker
