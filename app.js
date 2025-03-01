@@ -7,6 +7,18 @@ if ('serviceWorker' in navigator) {
     });
 }
 
+// LeanCloud 初始化
+const APP_ID = '您的LeanCloud应用ID';
+const APP_KEY = '您的LeanCloud应用Key';
+const SERVER_URL = '您的LeanCloud服务器URL';
+
+// 初始化LeanCloud
+AV.init({
+    appId: APP_ID,
+    appKey: APP_KEY,
+    serverURL: SERVER_URL
+});
+
 document.addEventListener('DOMContentLoaded', function() {
     // Elements
     const fileInput = document.getElementById('fileInput');
@@ -27,6 +39,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const homeTab = document.getElementById('homeTab');
     const shopTab = document.getElementById('shopTab');
     const userTab = document.getElementById('userTab');
+    const authTab = document.getElementById('authTab');
+    const historyTab = document.getElementById('historyTab');
     const bottomNavItems = document.querySelectorAll('.bottom-nav-item');
     
     // Settings elements
@@ -69,23 +83,43 @@ document.addEventListener('DOMContentLoaded', function() {
     const buyYearBtn = document.getElementById('buyYearBtn');
     const activateCardBtn = document.getElementById('activateCardBtn');
     const upgradeBtn = document.getElementById('upgradeBtn');
+    const paymentOptions = document.querySelectorAll('.payment-option');
+    const paymentQRContainer = document.getElementById('paymentQRContainer');
+    const wxpayQR = document.getElementById('wxpayQR');
+    const alipayQR = document.getElementById('alipayQR');
+    const wxPayAmount = document.getElementById('wxPayAmount');
+    const aliPayAmount = document.getElementById('aliPayAmount');
+    const selectPackageTip = document.getElementById('selectPackageTip');
+    const verifyPaymentBtn = document.getElementById('verifyPaymentBtn');
+    
+    // Success Modal
+    const paymentSuccessModal = document.getElementById('paymentSuccessModal');
+    const addedCredits = document.getElementById('addedCredits');
+    const closePaymentSuccessBtn = document.getElementById('closePaymentSuccessBtn');
+    
+    // Auth elements
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    const showRegisterBtn = document.getElementById('showRegisterBtn');
+    const showLoginBtn = document.getElementById('showLoginBtn');
+    
+    // History elements
+    const historyBtn = document.getElementById('historyBtn');
+    const backFromHistoryBtn = document.getElementById('backFromHistoryBtn');
+    const historyList = document.getElementById('historyList');
+    
+    // User Profile elements
+    const userDisplayName = document.getElementById('userDisplayName');
+    const userSettingsBtn = document.getElementById('userSettingsBtn');
+    const aboutBtn = document.getElementById('aboutBtn');
     
     // Dark mode toggle
     const darkModeToggle = document.getElementById('darkModeToggle');
     
     let selectedFile = null;
-    
-    // 免费使用限制相关
-    const DEFAULT_FREE_SCANS = 6;
-    const CHECKIN_REWARD = 1;
-    
-    // 用户配置和使用数据存储对象
-    const userData = {
-        remainingScans: DEFAULT_FREE_SCANS,
-        lastCheckinDate: null,
-        hasCheckedInToday: false,
-        scanHistory: []
-    };
+    let currentUser = null;
+    let selectedPackage = null;
+    let selectedPaymentMethod = 'wechat';
     
     // 默认设置
     const defaultSettings = {
@@ -95,86 +129,196 @@ document.addEventListener('DOMContentLoaded', function() {
         azureEndpoint: '',
         maxTokens: 2000,
         temperature: 0.7,
-        usePoeApi: true // 是否使用 Poe API (如果可用)
+        usePoeApi: true // 是否使用默认API
     };
     
     // 初始化应用
     function initApp() {
-        loadUserData();
-        updateUsageCounter();
+        checkUserSession();
         checkDarkModePreference();
-        
-        // 检查是否已经签到
-        checkDailyCheckin();
-
-        // 初始化支付选项
         initPaymentOptions();
+        renderCheckinCircles();
     }
     
-    // 初始化支付选项
-    function initPaymentOptions() {
-        const paymentOptions = document.querySelectorAll('.payment-option');
-        const selectedPayment = document.getElementById('selectedPayment');
+    // 检查用户登录状态
+    function checkUserSession() {
+        currentUser = AV.User.current();
+        if (currentUser) {
+            // 用户已登录
+            userDisplayName.textContent = currentUser.get('username') || '用户_' + currentUser.id.substring(0, 6);
+            updateUserCredits();
+        } else {
+            // 游客状态
+            userDisplayName.textContent = '游客用户';
+            // 本地存储中可能有游客使用记录
+            loadGuestUserData();
+        }
         
-        paymentOptions.forEach(option => {
-            option.addEventListener('click', () => {
-                // 移除所有活动状态
-                paymentOptions.forEach(opt => opt.classList.remove('active'));
-                
-                // 添加当前活动状态
-                option.classList.add('active');
-                
-                // 更新显示的二维码
-                const img = option.querySelector('img');
-                const qrImg = selectedPayment.querySelector('img');
-                qrImg.src = img.src;
-                qrImg.alt = img.alt;
+        updateUsageCounter();
+        checkDailyCheckin();
+    }
+    
+    // 更新用户积分(使用次数)
+    function updateUserCredits() {
+        if (currentUser) {
+            currentUser.fetch().then(() => {
+                const credits = currentUser.get('credits') || 0;
+                updateUsageDisplay(credits);
+            }).catch(error => {
+                console.error('Failed to fetch user data:', error);
             });
-        });
-    }
-    
-    // 保存用户数据
-    function saveUserData() {
-        localStorage.setItem('foodScannerUserData', JSON.stringify(userData));
-    }
-    
-    // 加载用户数据
-    function loadUserData() {
-        const savedData = localStorage.getItem('foodScannerUserData');
-        if (savedData) {
-            const parsedData = JSON.parse(savedData);
-            
-            // 合并已保存的数据，保留默认值
-            Object.assign(userData, parsedData);
-            
-            // 确保有历史记录数组
-            if (!userData.scanHistory) {
-                userData.scanHistory = [];
-            }
         }
     }
     
     // 更新使用次数显示
-    function updateUsageCounter() {
-        usageCounter.textContent = `剩余次数: ${userData.remainingScans}`;
+    function updateUsageDisplay(credits) {
+        usageCounter.textContent = `剩余次数: ${credits}`;
         if (userRemainingScans) {
-            userRemainingScans.textContent = userData.remainingScans;
+            userRemainingScans.textContent = credits;
+        }
+    }
+    
+    // 渲染签到圆点
+    function renderCheckinCircles() {
+        const container = document.querySelector('.checkin-circles');
+        if (!container) return;
+        
+        container.innerHTML = '';
+        
+        // 获取当前用户的签到记录
+        const checkinDays = getCurrentUser() ? (currentUser.get('checkinDays') || 0) : (loadGuestUserData().checkinDays || 0);
+        
+        // 创建7个圆点
+        for (let i = 1; i <= 7; i++) {
+            let circleClass = 'flex items-center justify-center w-8 h-8 rounded-full text-xs mr-1';
+            
+            if (i <= checkinDays) {
+                // 已签到
+                circleClass += ' bg-green-100 dark:bg-green-900 dark:bg-opacity-30 text-green-600 dark:text-green-400';
+                container.innerHTML += `
+                    <span class="${circleClass}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </span>
+                `;
+            } else {
+                // 未签到
+                circleClass += ' bg-gray-100 dark:bg-gray-700 text-gray-400';
+                container.innerHTML += `<span class="${circleClass}">${i}</span>`;
+            }
+        }
+    }
+    
+    // 加载游客用户数据
+    function loadGuestUserData() {
+        const guestData = localStorage.getItem('guestUserData');
+        if (guestData) {
+            return JSON.parse(guestData);
+        }
+        
+        // 默认游客数据
+        const defaultGuestData = {
+            credits: 0,
+            lastCheckinDate: null,
+            checkinDays: 0,
+            history: []
+        };
+        
+        localStorage.setItem('guestUserData', JSON.stringify(defaultGuestData));
+        return defaultGuestData;
+    }
+    
+    // 保存游客用户数据
+    function saveGuestUserData(data) {
+        localStorage.setItem('guestUserData', JSON.stringify(data));
+    }
+    
+    // 更新游客使用次数
+    function updateGuestCredits(change) {
+        const guestData = loadGuestUserData();
+        guestData.credits += change;
+        saveGuestUserData(guestData);
+        updateUsageDisplay(guestData.credits);
+    }
+    
+    // 获取当前用户可用分析次数
+    function getUserCredits() {
+        if (currentUser) {
+            return currentUser.get('credits') || 0;
+        } else {
+            return loadGuestUserData().credits || 0;
+        }
+    }
+    
+    // 减少使用次数
+    function decrementUserCredits() {
+        if (currentUser) {
+            const credits = currentUser.get('credits') || 0;
+            if (credits <= 0) return false;
+            
+            currentUser.set('credits', credits - 1);
+            return currentUser.save().then(() => {
+                updateUsageCounter();
+                return true;
+            }).catch(error => {
+                console.error('Failed to update user credits:', error);
+                return false;
+            });
+        } else {
+            const guestData = loadGuestUserData();
+            if (guestData.credits <= 0) return false;
+            
+            guestData.credits -= 1;
+            saveGuestUserData(guestData);
+            updateUsageDisplay(guestData.credits);
+            return Promise.resolve(true);
+        }
+    }
+    
+    // 增加使用次数
+    function incrementUserCredits(amount) {
+        if (currentUser) {
+            const credits = currentUser.get('credits') || 0;
+            currentUser.set('credits', credits + amount);
+            return currentUser.save().then(() => {
+                updateUserCredits();
+                return true;
+            }).catch(error => {
+                console.error('Failed to update user credits:', error);
+                return false;
+            });
+        } else {
+            const guestData = loadGuestUserData();
+            guestData.credits += amount;
+            saveGuestUserData(guestData);
+            updateUsageDisplay(guestData.credits);
+            return Promise.resolve(true);
         }
     }
     
     // 检查每日签到状态
     function checkDailyCheckin() {
         const today = new Date().toDateString();
+        let lastCheckinDate = null;
         
-        if (userData.lastCheckinDate === today) {
-            userData.hasCheckedInToday = true;
+        if (currentUser) {
+            lastCheckinDate = currentUser.get('lastCheckinDate');
+        } else {
+            const guestData = loadGuestUserData();
+            lastCheckinDate = guestData.lastCheckinDate;
+        }
+        
+        const hasCheckedInToday = lastCheckinDate === today;
+        
+        if (hasCheckedInToday) {
             checkinBtn.classList.add('opacity-50');
             userCheckinBtn.disabled = true;
             userCheckinBtn.classList.add('opacity-50');
             checkinStatus.textContent = '今日已签到';
             checkinStatus.classList.add('text-green-500');
+            checkinStatus.classList.remove('text-yellow-500');
         } else {
-            userData.hasCheckedInToday = false;
             checkinBtn.classList.remove('opacity-50');
             userCheckinBtn.disabled = false;
             userCheckinBtn.classList.remove('opacity-50');
@@ -186,54 +330,164 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 执行每日签到
     function performCheckin() {
-        if (userData.hasCheckedInToday) return;
-        
         const today = new Date().toDateString();
-        userData.lastCheckinDate = today;
-        userData.hasCheckedInToday = true;
-        userData.remainingScans += CHECKIN_REWARD;
         
-        saveUserData();
-        updateUsageCounter();
+        // 检查是否已经签到
+        let lastCheckinDate = null;
+        if (currentUser) {
+            lastCheckinDate = currentUser.get('lastCheckinDate');
+        } else {
+            const guestData = loadGuestUserData();
+            lastCheckinDate = guestData.lastCheckinDate;
+        }
         
-        // 更新签到UI
+        if (lastCheckinDate === today) {
+            return; // 今日已签到
+        }
+        
+        const CHECKIN_REWARD = 1; // 签到奖励
+        
+        if (currentUser) {
+            // 已登录用户
+            let checkinDays = currentUser.get('checkinDays') || 0;
+            
+            // 检查是否连续签到
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayString = yesterday.toDateString();
+            
+            if (lastCheckinDate !== yesterdayString) {
+                // 不是连续签到，重置计数
+                checkinDays = 1;
+            } else {
+                // 连续签到
+                checkinDays += 1;
+                // 第7天连续签到额外奖励
+                if (checkinDays === 7) {
+                    incrementUserCredits(2); // 额外奖励2次
+                }
+            }
+            
+            currentUser.set('lastCheckinDate', today);
+            currentUser.set('checkinDays', checkinDays);
+            currentUser.save().then(() => {
+                incrementUserCredits(CHECKIN_REWARD);
+                updateCheckinUI();
+                renderCheckinCircles();
+                
+                // 显示签到成功弹窗
+                checkinModal.classList.add('show');
+            }).catch(error => {
+                console.error('Failed to update checkin status:', error);
+            });
+        } else {
+            // 游客用户
+            const guestData = loadGuestUserData();
+            let checkinDays = guestData.checkinDays || 0;
+            
+            // 检查是否连续签到
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayString = yesterday.toDateString();
+            
+            if (guestData.lastCheckinDate !== yesterdayString) {
+                // 不是连续签到，重置计数
+                checkinDays = 1;
+            } else {
+                // 连续签到
+                checkinDays += 1;
+                // 第7天连续签到额外奖励
+                if (checkinDays === 7) {
+                    guestData.credits += 2; // 额外奖励2次
+                }
+            }
+            
+            guestData.lastCheckinDate = today;
+            guestData.checkinDays = checkinDays;
+            guestData.credits += CHECKIN_REWARD;
+            
+            saveGuestUserData(guestData);
+            updateUsageDisplay(guestData.credits);
+            updateCheckinUI();
+            renderCheckinCircles();
+            
+            // 显示签到成功弹窗
+            checkinModal.classList.add('show');
+        }
+    }
+    
+    // 更新签到UI
+    function updateCheckinUI() {
         checkinBtn.classList.add('opacity-50');
         userCheckinBtn.disabled = true;
         userCheckinBtn.classList.add('opacity-50');
         checkinStatus.textContent = '今日已签到';
         checkinStatus.classList.add('text-green-500');
         checkinStatus.classList.remove('text-yellow-500');
-        
-        // 显示签到成功弹窗
-        checkinModal.classList.add('show');
-    }
-    
-    // 减少使用次数
-    function decrementUsage() {
-        if (userData.remainingScans > 0) {
-            userData.remainingScans--;
-            saveUserData();
-            updateUsageCounter();
-            return true;
-        }
-        return false;
     }
     
     // 添加扫描历史
-    function addScanHistory(imagePreview, result, health) {
-        userData.scanHistory.push({
+    function addScanHistory(imageData, result, healthRating) {
+        const historyItem = {
             date: new Date().toISOString(),
-            imageData: imagePreview.src,
+            imageData: imageData,
             result: result,
-            healthRating: health
-        });
+            healthRating: healthRating
+        };
         
-        // 限制历史记录数量，防止localStorage过大
-        if (userData.scanHistory.length > 20) {
-            userData.scanHistory.shift(); // 移除最旧的记录
+        if (currentUser) {
+            // 已登录用户，保存到云端
+            const ScanHistory = AV.Object.extend('ScanHistory');
+            const history = new ScanHistory();
+            
+            history.set('user', currentUser);
+            history.set('imageData', imageData);
+            history.set('result', result);
+            history.set('healthRating', healthRating);
+            
+            history.save().catch(error => {
+                console.error('Failed to save scan history:', error);
+            });
+        } else {
+            // 游客用户，保存到本地
+            const guestData = loadGuestUserData();
+            guestData.history = guestData.history || [];
+            
+            // 限制历史记录数量，防止localStorage过大
+            if (guestData.history.length >= 10) {
+                guestData.history.shift(); // 移除最旧的记录
+            }
+            
+            guestData.history.push(historyItem);
+            saveGuestUserData(guestData);
         }
-        
-        saveUserData();
+    }
+    
+    // 加载扫描历史
+    function loadScanHistory() {
+        if (currentUser) {
+            // 已登录用户，从云端加载
+            const query = new AV.Query('ScanHistory');
+            query.equalTo('user', currentUser);
+            query.descending('createdAt');
+            query.limit(20);
+            
+            return query.find().then(results => {
+                return results.map(item => {
+                    return {
+                        id: item.id,
+                        date: item.get('createdAt').toISOString(),
+                        imageData: item.get('imageData'),
+                        result: item.get('result'),
+                        healthRating: item.get('healthRating')
+                    };
+                });
+            });
+        } else {
+            // 游客用户，从本地加载
+            const guestData = loadGuestUserData();
+            return Promise.resolve(guestData.history || []);
+        }
     }
     
     // 检查深色模式偏好
@@ -246,6 +500,136 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             document.documentElement.classList.remove('dark');
         }
+    }
+    
+    // 初始化支付选项
+    function initPaymentOptions() {
+        // 支付方式切换
+        paymentOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                paymentOptions.forEach(opt => opt.classList.remove('active'));
+                option.classList.add('active');
+                
+                selectedPaymentMethod = option.getAttribute('data-payment');
+                updatePaymentQRDisplay();
+            });
+        });
+        
+        // 购买按钮点击事件
+        const buyButtons = [buyBasicBtn, buyHighBtn, buyYearBtn];
+        buyButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const price = btn.getAttribute('data-price');
+                const scans = btn.getAttribute('data-scans');
+                const packageType = btn.getAttribute('data-package');
+                
+                selectedPackage = {
+                    price: price,
+                    scans: scans,
+                    type: packageType
+                };
+                
+                // 显示支付二维码
+                paymentQRContainer.classList.remove('hidden');
+                selectPackageTip.classList.add('hidden');
+                
+                // 更新金额显示
+                wxPayAmount.textContent = `¥${price}`;
+                aliPayAmount.textContent = `¥${price}`;
+                
+                // 更新二维码显示
+                updatePaymentQRDisplay();
+            });
+        });
+        
+        // 验证支付按钮
+        verifyPaymentBtn.addEventListener('click', () => {
+            // 模拟支付成功
+            if (selectedPackage) {
+                verifyPayment(selectedPackage.type, parseInt(selectedPackage.scans));
+            }
+        });
+    }
+    
+    // 更新支付二维码显示
+    function updatePaymentQRDisplay() {
+        if (selectedPaymentMethod === 'wechat') {
+            wxpayQR.classList.remove('hidden');
+            alipayQR.classList.add('hidden');
+        } else {
+            wxpayQR.classList.add('hidden');
+            alipayQR.classList.remove('hidden');
+        }
+    }
+    
+    // 验证支付
+    function verifyPayment(packageType, scans) {
+        // 这里应该对接后端API进行实际的支付验证
+        // 由于现在没有后端，我们模拟支付成功
+        
+        // 显示loading
+        verifyPaymentBtn.innerHTML = `
+            <div class="inline-block w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin mr-1"></div>
+            验证中...
+        `;
+        
+        // 模拟网络延迟
+        setTimeout(() => {
+            incrementUserCredits(scans).then(() => {
+                // 支付成功，显示成功提示
+                addedCredits.textContent = scans;
+                paymentSuccessModal.classList.add('show');
+                
+                // 隐藏支付二维码
+                paymentQRContainer.classList.add('hidden');
+                selectPackageTip.classList.remove('hidden');
+                
+                // 重置验证按钮
+                verifyPaymentBtn.textContent = '验证支付';
+                
+                // 清除选中的套餐
+                selectedPackage = null;
+            });
+        }, 1500);
+    }
+    
+    // 卡密验证与激活
+    function activateCardKey(code) {
+        if (!code || code.trim() === '') {
+            alert('请输入有效的卡密');
+            return;
+        }
+        
+        // 查询卡密
+        const query = new AV.Query('CardKey');
+        query.equalTo('code', code);
+        query.equalTo('isUsed', false);
+        
+        query.first().then(card => {
+            if (!card) {
+                alert('卡密无效或已被使用');
+                return;
+            }
+            
+            // 标记卡密为已使用
+            card.set('isUsed', true);
+            if (currentUser) {
+                card.set('usedBy', currentUser);
+            }
+            
+            return card.save().then(() => {
+                const value = card.get('value');
+                
+                // 增加用户积分
+                return incrementUserCredits(value).then(() => {
+                    alert(`卡密激活成功，您获得了${value}次分析机会`);
+                    document.getElementById('cardKey').value = '';
+                });
+            });
+        }).catch(error => {
+            console.error('卡密验证失败:', error);
+            alert('卡密验证失败，请稍后重试');
+        });
     }
     
     // 初始化标签页切换
@@ -262,35 +646,38 @@ document.addEventListener('DOMContentLoaded', function() {
         upgradeBtn.addEventListener('click', () => {
             showTab('shopTab');
         });
-
-        // 购物相关按钮
-        buyBasicBtn.addEventListener('click', () => {
-            alert('请扫描二维码支付19.9元购买基础套餐');
+        
+        // 历史记录按钮
+        historyBtn.addEventListener('click', () => {
+            loadScanHistoryData();
+            showCustomTab('historyTab');
         });
         
-        buyHighBtn.addEventListener('click', () => {
-            alert('请扫描二维码支付49.9元购买高级套餐');
+        // 返回按钮
+        backFromHistoryBtn.addEventListener('click', () => {
+            showTab('userTab');
         });
         
-        buyYearBtn.addEventListener('click', () => {
-            alert('请扫描二维码支付99.9元购买年度套餐');
+        // 用户设置按钮
+        userSettingsBtn.addEventListener('click', () => {
+            settingsModal.classList.add('show');
+            loadSettings();
+        });
+        
+        // 关于我们按钮
+        aboutBtn.addEventListener('click', () => {
+            alert('食品安全扫描 V1.0\n\n一款帮助您识别食品添加剂和安全风险的工具\n\n© 2023 All Rights Reserved');
         });
         
         // 卡密激活
         activateCardBtn.addEventListener('click', () => {
             const cardKey = document.getElementById('cardKey').value;
-            if (cardKey.trim() === '') {
-                alert('请输入有效的卡密');
-                return;
-            }
-            
-            // 这里应该添加卡密验证逻辑
-            // 由于我们没有后端，这里仅做简单演示
-            alert('卡密激活成功，您获得了10次分析机会');
-            userData.remainingScans += 10;
-            saveUserData();
-            updateUsageCounter();
-            document.getElementById('cardKey').value = '';
+            activateCardKey(cardKey);
+        });
+        
+        // 支付成功关闭按钮
+        closePaymentSuccessBtn.addEventListener('click', () => {
+            paymentSuccessModal.classList.remove('show');
         });
     }
 
@@ -305,12 +692,128 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         // 隐藏所有tab内容
-        homeTab.classList.add('hidden');
-        shopTab.classList.add('hidden');
-        userTab.classList.add('hidden');
+        hideAllTabs();
         
         // 显示选中的tab
         document.getElementById(tabName).classList.remove('hidden');
+    }
+    
+    // 显示自定义标签页(不在底部导航中的页面)
+    function showCustomTab(tabName) {
+        hideAllTabs();
+        document.getElementById(tabName).classList.remove('hidden');
+    }
+    
+    // 隐藏所有标签页
+    function hideAllTabs() {
+        const allTabs = [homeTab, shopTab, userTab, authTab, historyTab];
+        allTabs.forEach(tab => {
+            if (tab) tab.classList.add('hidden');
+        });
+    }
+    
+    // 加载历史记录数据
+    function loadScanHistoryData() {
+        historyList.innerHTML = '<div class="p-4 text-center text-gray-500">正在加载历史记录...</div>';
+        
+        loadScanHistory().then(records => {
+            if (!records || records.length === 0) {
+                historyList.innerHTML = '<div class="p-4 text-center text-gray-500">暂无历史记录</div>';
+                return;
+            }
+            
+            historyList.innerHTML = '';
+            
+            records.forEach(record => {
+                const date = new Date(record.date);
+                const formattedDate = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+                
+                const healthRatingStars = '★'.repeat(record.healthRating) + '☆'.repeat(5 - record.healthRating);
+                let healthClass = 'text-green-500';
+                if (record.healthRating <= 2) {
+                    healthClass = 'text-red-500';
+                } else if (record.healthRating === 3) {
+                    healthClass = 'text-yellow-500';
+                }
+                
+                const historyItem = document.createElement('div');
+                historyItem.className = 'p-4 border-b border-gray-200 dark:border-gray-700';
+                historyItem.innerHTML = `
+                    <div class="flex items-start mb-2">
+                        <img src="${record.imageData}" alt="食品照片" class="w-16 h-16 object-cover rounded-lg mr-3">
+                        <div class="flex-1">
+                            <div class="flex justify-between">
+                                <span class="text-sm text-gray-500">${formattedDate}</span>
+                                <span class="${healthClass}">${healthRatingStars}</span>
+                            </div>
+                            <p class="mt-1 line-clamp-2 text-sm">${record.result.substring(0, 100)}...</p>
+                        </div>
+                    </div>
+                    <button class="view-history-btn text-primary-color text-sm" data-id="${record.id || ''}">查看详情</button>
+                `;
+                
+                historyList.appendChild(historyItem);
+            });
+            
+            // 添加详情查看事件
+            document.querySelectorAll('.view-history-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const recordId = btn.getAttribute('data-id');
+                    viewHistoryDetail(recordId);
+                });
+            });
+        }).catch(error => {
+            console.error('Failed to load scan history:', error);
+            historyList.innerHTML = '<div class="p-4 text-center text-red-500">加载历史记录失败</div>';
+        });
+    }
+    
+    // 查看历史记录详情
+    function viewHistoryDetail(recordId) {
+        // 根据ID查找记录
+        if (!recordId) {
+            // 本地记录，从localStorage查找
+            const guestData = loadGuestUserData();
+            const record = guestData.history.find(item => item.id === recordId);
+            
+            if (record) {
+                displayHistoryDetail(record);
+            }
+        } else {
+            // 云端记录，从LeanCloud查找
+            const query = new AV.Query('ScanHistory');
+            query.get(recordId).then(record => {
+                const detail = {
+                    date: record.get('createdAt').toISOString(),
+                    imageData: record.get('imageData'),
+                    result: record.get('result'),
+                    healthRating: record.get('healthRating')
+                };
+                
+                displayHistoryDetail(detail);
+            }).catch(error => {
+                console.error('Failed to fetch history detail:', error);
+                alert('获取历史记录详情失败');
+            });
+        }
+    }
+    
+    // 显示历史记录详情
+    function displayHistoryDetail(record) {
+        // 切换到主页并显示结果
+        showTab('homeTab');
+        
+        // 解析Markdown
+        let parsedContent = marked.parse(record.result);
+        
+        // 高亮有害添加剂
+        parsedContent = highlightHarmfulAdditives(parsedContent);
+        
+        // 显示结果
+        resultContent.innerHTML = parsedContent;
+        renderHealthRating(record.healthRating);
+        
+        resultSection.classList.remove('hidden');
     }
     
     // 事件监听器设置
@@ -579,6 +1082,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
+    paymentSuccessModal.addEventListener('click', (e) => {
+        if (e.target === paymentSuccessModal) {
+            paymentSuccessModal.classList.remove('show');
+        }
+    });
+    
     // 显示/隐藏高级选项
     toggleAdvancedBtn.addEventListener('click', () => {
         const isHidden = advancedOptions.classList.contains('hidden');
@@ -665,7 +1174,7 @@ document.addEventListener('DOMContentLoaded', function() {
             azureEndpoint: azureEndpoint.value,
             maxTokens: parseInt(maxTokens.value),
             temperature: parseFloat(temperature.value),
-            usePoeApi: apiKey.value === '' // 如果没有提供API密钥，使用Poe API
+            usePoeApi: apiKey.value === '' // 如果没有提供API密钥，使用默认API
         };
         
         localStorage.setItem('foodScannerSettings', JSON.stringify(settings));
@@ -725,25 +1234,30 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // 获取当前用户对象
+    function getCurrentUser() {
+        return currentUser;
+    }
+    
     // 分析按钮点击处理
     analyzeBtn.addEventListener('click', async () => {
         if (!selectedFile) return;
         
-        // 检查是否有足够的剩余次数或自定义API
+        // 检查是否有足够的分析次数或API配置
         const settings = getSettings();
+        const hasCustomApi = settings.apiKey && settings.apiKey.length > 0;
+        const creditsAvailable = getUserCredits() > 0;
         
-        if (!settings.apiKey && userData.remainingScans <= 0) {
+        if (!hasCustomApi && !creditsAvailable) {
             // 显示提示用户购买或配置API的弹窗
             usageExhaustedModal.classList.add('show');
             return;
         }
         
         // 如果使用免费额度，减少使用次数
-        if (!settings.apiKey) {
-            decrementUsage();
+        if (!hasCustomApi) {
+            decrementUserCredits();
         }
-        
-        // 获取当前设置
         
         // 显示加载状态
         loadingSection.classList.remove('hidden');
@@ -751,7 +1265,7 @@ document.addEventListener('DOMContentLoaded', function() {
         analyzeBtn.disabled = true;
         
         try {
-            // 如果使用Poe API
+            // 如果使用默认API
             if (settings.usePoeApi && window.Poe) {
                 await analyzeWithPoeApi(selectedFile);
             } else {
@@ -807,7 +1321,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // If response is complete, enable the analyze button again
                 if (response.status === 'complete') {
                     // 保存到历史记录
-                    addScanHistory(imagePreview, response.content, healthRatingValue);
+                    addScanHistory(imagePreview.src, response.content, healthRatingValue);
                     
                     analyzeBtn.disabled = false;
                 }
@@ -1086,7 +1600,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // 保存到历史记录
-        addScanHistory(imagePreview, content, healthRatingValue);
+        addScanHistory(imagePreview.src, content, healthRatingValue);
         
         resultSection.classList.remove('hidden');
         analyzeBtn.disabled = false;
@@ -1159,7 +1673,62 @@ document.addEventListener('DOMContentLoaded', function() {
         resultSection.classList.remove('hidden');
     }
     
+    // 注册相关事件
+    function setupAuthForms() {
+        // 切换登录/注册表单
+        showRegisterBtn.addEventListener('click', () => {
+            loginForm.classList.add('hidden');
+            registerForm.classList.remove('hidden');
+        });
+        
+        showLoginBtn.addEventListener('click', () => {
+            registerForm.classList.add('hidden');
+            loginForm.classList.remove('hidden');
+        });
+        
+        // 登录表单提交
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            AV.User.logIn(username, password).then(user => {
+                // 登录成功，刷新用户信息
+                currentUser = user;
+                checkUserSession();
+                showTab('homeTab');
+            }).catch(error => {
+                alert('登录失败: ' + error.message);
+            });
+        });
+        
+        // 注册表单提交
+        registerForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const username = document.getElementById('regUsername').value;
+            const password = document.getElementById('regPassword').value;
+            const phone = document.getElementById('regPhone').value;
+            
+            // 创建用户
+            const user = new AV.User();
+            user.setUsername(username);
+            user.setPassword(password);
+            user.setMobilePhoneNumber(phone);
+            
+            user.signUp().then(user => {
+                // 注册成功
+                alert('注册成功');
+                currentUser = user;
+                checkUserSession();
+                showTab('homeTab');
+            }).catch(error => {
+                alert('注册失败: ' + error.message);
+            });
+        });
+    }
+    
     // 初始化
     initApp();
     initTabs();
+    setupAuthForms();
 });
