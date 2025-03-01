@@ -1,8 +1,13 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="食品安全扫描">
+<link rel="apple-touch-icon" href="icon-192x192.png">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>食品安全扫描</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked@4.0.0/marked.min.js"></script>
@@ -107,6 +112,16 @@
         .btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
+        }
+
+        .btn-success {
+            background-color: var(--apple-green);
+            color: white;
+        }
+
+        .btn-danger {
+            background-color: var(--apple-red);
+            color: white;
         }
 
         .badge {
@@ -279,11 +294,196 @@
             background-size: 16px;
             padding-right: 40px;
         }
+
+        /* Camera UI Enhancements */
+        .camera-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background-color: #000;
+            z-index: 100;
+        }
+        
+        .camera-header {
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: #000;
+            color: #fff;
+        }
+        
+        .camera-footer {
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            background-color: #000;
+        }
+        
+        .camera-viewer {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .camera-view {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .camera-frame {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            height: 60%;
+            border: 2px dashed rgba(255, 255, 255, 0.8);
+            border-radius: 12px;
+            box-shadow: 0 0 0 5000px rgba(0, 0, 0, 0.3);
+            pointer-events: none;
+        }
+        
+        .camera-button {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background-color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            outline: none;
+        }
+        
+        .camera-button-inner {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background-color: white;
+            border: 2px solid black;
+        }
+
+        /* QR CODE Styles */
+        .qr-code-container {
+            margin: 20px auto;
+            text-align: center;
+            max-width: 200px;
+        }
+        
+        .qr-code-img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+        
+        /* Usage Counters */
+        .usage-counter {
+            border-radius: 18px;
+            padding: 4px 8px;
+            font-size: 12px;
+            font-weight: bold;
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            background-color: var(--card-bg);
+            border-top: 1px solid var(--border-color);
+            padding: 10px 0;
+            z-index: 10;
+        }
+        
+        .bottom-nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 10px;
+            color: var(--secondary-color);
+        }
+        
+        .bottom-nav-item.active {
+            color: var(--primary-color);
+        }
+        
+        /* Countdown Timer */
+        .countdown {
+            font-size: 14px;
+            text-align: center;
+            color: var(--secondary-color);
+            margin-top: 8px;
+        }
+        
+        /* Switch Toggle */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .toggle-slider {
+            background-color: var(--primary-color);
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
     </style>
 </head>
-<body class="dark-mode light-mode min-h-screen px-4 py-6">
+<body class="dark-mode light-mode min-h-screen px-4 pb-20 pt-6">
     <main class="max-w-md mx-auto">
         <header class="text-center mb-6 relative">
+            <div class="absolute left-0 top-0 flex items-center gap-1">
+                <button id="checkinBtn" class="p-2 rounded-full bg-green-500 text-white" aria-label="签到">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+                <span id="usageCounter" class="usage-counter">剩余次数: 6</span>
+            </div>
+
             <button id="settingsBtn" class="absolute right-0 top-0 p-2 text-secondary-color" aria-label="设置">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -367,7 +567,156 @@
                 </div>
             </div>
         </div>
+
+        <!-- 底部导航栏 -->
+        <nav class="bottom-nav shadow-lg">
+            <div class="bottom-nav-item active" data-tab="home">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                <span>扫描</span>
+            </div>
+            <div class="bottom-nav-item" data-tab="shop">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+                <span>购买</span>
+            </div>
+            <div class="bottom-nav-item" data-tab="user">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <span>我的</span>
+            </div>
+        </nav>
     </main>
+
+    <!-- 购买页面 -->
+    <div id="shopTab" class="max-w-md mx-auto hidden">
+        <div class="card mb-6">
+            <div class="card-header">购买使用次数</div>
+            <div class="card-content">
+                <div class="flex flex-col gap-4">
+                    <div class="bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold mb-2">标准套餐</h3>
+                        <div class="flex justify-between mb-2">
+                            <span>10次分析</span>
+                            <span class="font-bold">¥19.9</span>
+                        </div>
+                        <button class="btn btn-primary w-full py-2">购买</button>
+                    </div>
+                    
+                    <div class="bg-purple-50 dark:bg-purple-900 dark:bg-opacity-20 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold mb-2">高级套餐</h3>
+                        <div class="flex justify-between mb-2">
+                            <span>30次分析</span>
+                            <span class="font-bold">¥49.9</span>
+                        </div>
+                        <button class="btn btn-primary w-full py-2">购买</button>
+                    </div>
+                    
+                    <div class="bg-green-50 dark:bg-green-900 dark:bg-opacity-20 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold mb-2">年度套餐</h3>
+                        <div class="flex justify-between mb-2">
+                            <span>100次分析</span>
+                            <span class="font-bold">¥99.9</span>
+                        </div>
+                        <button class="btn btn-primary w-full py-2">购买</button>
+                    </div>
+                </div>
+                
+                <div class="mt-6">
+                    <h3 class="text-lg font-semibold mb-3">使用卡密</h3>
+                    <div class="flex gap-2">
+                        <input type="text" id="cardKey" placeholder="请输入卡密" class="form-input flex-1" />
+                        <button class="btn btn-primary px-4">激活</button>
+                    </div>
+                </div>
+                
+                <div class="mt-8 text-center">
+                    <h3 class="text-lg font-semibold mb-3">扫码支付</h3>
+                    <div class="flex justify-center gap-6">
+                        <div class="text-center">
+                            <div class="qr-code-container bg-white p-2 rounded-lg mb-2">
+                                <!-- 这里应该放微信支付二维码图片 -->
+                                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKQAAACkAQMAAAAjexcCAAAAA1BMVEUAAACnej3aAAAAAXRSTlMAQObYZgAAABxJREFUKM9jGAWjYBSMglEwCkbBKBgFo2AUkAoABVgAAXU+mhQAAAAASUVORK5CYII=" class="qr-code-img" alt="微信支付" />
+                            </div>
+                            <span class="text-sm">微信支付</span>
+                        </div>
+                        <div class="text-center">
+                            <div class="qr-code-container bg-white p-2 rounded-lg mb-2">
+                                <!-- 这里应该放支付宝二维码图片 -->
+                                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKQAAACkAQMAAAAjexcCAAAAA1BMVEUAAACnej3aAAAAAXRSTlMAQObYZgAAABxJREFUKM9jGAWjYBSMglEwCkbBKBgFo2AUkAoABVgAAXU+mhQAAAAASUVORK5CYII=" class="qr-code-img" alt="支付宝" />
+                            </div>
+                            <span class="text-sm">支付宝</span>
+                        </div>
+                    </div>
+                    <p class="text-sm text-secondary-color mt-3">扫码后请备注"食品扫描"</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 用户页面 -->
+    <div id="userTab" class="max-w-md mx-auto hidden">
+        <div class="card mb-6">
+            <div class="card-header">我的账户</div>
+            <div class="card-content">
+                <div class="flex items-center mb-6">
+                    <div class="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mr-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-500 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-lg">游客用户</h3>
+                        <p class="text-sm text-secondary-color">剩余分析次数: <span id="userRemainingScans" class="font-bold text-primary-color">6</span></p>
+                    </div>
+                </div>
+                
+                <div class="border-t border-b border-gray-200 dark:border-gray-700 py-4 my-4">
+                    <h3 class="font-semibold mb-3">每日签到</h3>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm">每天签到可获得1次免费分析机会</p>
+                            <div id="checkinStatus" class="mt-1 text-xs text-green-500">今日已签到</div>
+                        </div>
+                        <button id="userCheckinBtn" class="btn btn-primary py-2 px-4">签到</button>
+                    </div>
+                </div>
+                
+                <div class="py-4">
+                    <h3 class="font-semibold mb-3">应用设置</h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span>深色模式</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="darkModeToggle">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <span>保存历史记录</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="saveHistoryToggle" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <button id="donateBtn" class="btn btn-secondary py-3 w-full flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
+                        打赏开发者
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Settings Modal -->
     <div id="settingsModal" class="modal">
@@ -456,6 +805,73 @@
         </div>
     </div>
 
+    <!-- 签到成功弹窗 -->
+    <div id="checkinModal" class="modal">
+        <div class="modal-content text-center p-6" style="max-width: 300px;">
+            <div class="text-green-500 mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <h3 class="text-xl font-bold mb-2">签到成功!</h3>
+            <p class="mb-6">您已获得1次免费分析机会</p>
+            <button id="closeCheckinBtn" class="btn btn-primary w-full py-2">我知道了</button>
+        </div>
+    </div>
+
+    <!-- 打赏弹窗 -->
+    <div id="donateModal" class="modal">
+        <div class="modal-content">
+            <div class="card-header flex justify-between items-center">
+                <span>打赏开发者</span>
+                <button id="closeDonateBtn" class="text-secondary-color p-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="card-content text-center">
+                <p class="mb-6">如果这个工具对您有帮助，可以考虑打赏我们一杯咖啡，支持我们继续开发更多实用功能</p>
+                
+                <div class="flex justify-center gap-6">
+                    <div class="text-center">
+                        <div class="qr-code-container bg-white p-2 rounded-lg mb-2">
+                            <!-- 这里放微信打赏二维码 -->
+                            <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKQAAACkAQMAAAAjexcCAAAAA1BMVEUAAACnej3aAAAAAXRSTlMAQObYZgAAABxJREFUKM9jGAWjYBSMglEwCkbBKBgFo2AUkAoABVgAAXU+mhQAAAAASUVORK5CYII=" class="qr-code-img" alt="微信打赏" />
+                        </div>
+                        <span class="text-sm">微信打赏</span>
+                    </div>
+                    <div class="text-center">
+                        <div class="qr-code-container bg-white p-2 rounded-lg mb-2">
+                            <!-- 这里放支付宝打赏二维码 -->
+                            <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKQAAACkAQMAAAAjexcCAAAAA1BMVEUAAACnej3aAAAAAXRSTlMAQObYZgAAABxJREFUKM9jGAWjYBSMglEwCkbBKBgFo2AUkAoABVgAAXU+mhQAAAAASUVORK5CYII=" class="qr-code-img" alt="支付宝打赏" />
+                        </div>
+                        <span class="text-sm">支付宝打赏</span>
+                    </div>
+                </div>
+                
+                <p class="text-sm text-secondary-color mt-4">感谢您的支持，我们会继续努力！</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 用量用尽提示 -->
+    <div id="usageExhaustedModal" class="modal">
+        <div class="modal-content text-center p-6" style="max-width: 320px;">
+            <div class="text-yellow-500 mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+            </div>
+            <h3 class="text-xl font-bold mb-2">免费次数已用完</h3>
+            <p class="mb-6">您可以通过以下方式获取更多分析次数：</p>
+            <div class="space-y-3">
+                <button id="gotoShopBtn" class="btn btn-primary w-full py-2">购买次数</button>
+                <button id="configApiBtn" class="btn btn-secondary w-full py-2">配置自己的API</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Elements
@@ -470,6 +886,14 @@
             const resultSection = document.getElementById('resultSection');
             const resultContent = document.getElementById('resultContent');
             const healthRating = document.getElementById('healthRating');
+            const usageCounter = document.getElementById('usageCounter');
+            const userRemainingScans = document.getElementById('userRemainingScans');
+            
+            // Tab elements
+            const homeTab = document.querySelector('main');
+            const shopTab = document.getElementById('shopTab');
+            const userTab = document.getElementById('userTab');
+            const bottomNavItems = document.querySelectorAll('.bottom-nav-item');
             
             // Settings elements
             const settingsBtn = document.getElementById('settingsBtn');
@@ -488,7 +912,39 @@
             const temperatureValue = document.getElementById('temperatureValue');
             const resetSettingsBtn = document.getElementById('resetSettingsBtn');
             
+            // Checkin elements
+            const checkinBtn = document.getElementById('checkinBtn');
+            const userCheckinBtn = document.getElementById('userCheckinBtn');
+            const checkinModal = document.getElementById('checkinModal');
+            const closeCheckinBtn = document.getElementById('closeCheckinBtn');
+            const checkinStatus = document.getElementById('checkinStatus');
+            
+            // Donate elements
+            const donateBtn = document.getElementById('donateBtn');
+            const donateModal = document.getElementById('donateModal');
+            const closeDonateBtn = document.getElementById('closeDonateBtn');
+            
+            // Usage exhausted elements
+            const usageExhaustedModal = document.getElementById('usageExhaustedModal');
+            const gotoShopBtn = document.getElementById('gotoShopBtn');
+            const configApiBtn = document.getElementById('configApiBtn');
+            
+            // Dark mode toggle
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            
             let selectedFile = null;
+            
+            // 免费使用限制相关
+            const DEFAULT_FREE_SCANS = 6;
+            const CHECKIN_REWARD = 1;
+            
+            // 用户配置和使用数据存储对象
+            const userData = {
+                remainingScans: DEFAULT_FREE_SCANS,
+                lastCheckinDate: null,
+                hasCheckedInToday: false,
+                scanHistory: []
+            };
             
             // 默认设置
             const defaultSettings = {
@@ -501,7 +957,155 @@
                 usePoeApi: true // 是否使用 Poe API (如果可用)
             };
             
-            // Event handlers
+            // 初始化应用
+            function initApp() {
+                loadUserData();
+                updateUsageCounter();
+                checkDarkModePreference();
+                
+                // 检查是否已经签到
+                checkDailyCheckin();
+            }
+            
+            // 保存用户数据
+            function saveUserData() {
+                localStorage.setItem('foodScannerUserData', JSON.stringify(userData));
+            }
+            
+            // 加载用户数据
+            function loadUserData() {
+                const savedData = localStorage.getItem('foodScannerUserData');
+                if (savedData) {
+                    const parsedData = JSON.parse(savedData);
+                    
+                    // 合并已保存的数据，保留默认值
+                    Object.assign(userData, parsedData);
+                    
+                    // 确保有历史记录数组
+                    if (!userData.scanHistory) {
+                        userData.scanHistory = [];
+                    }
+                }
+            }
+            
+            // 更新使用次数显示
+            function updateUsageCounter() {
+                usageCounter.textContent = `剩余次数: ${userData.remainingScans}`;
+                userRemainingScans.textContent = userData.remainingScans;
+            }
+            
+            // 检查每日签到状态
+            function checkDailyCheckin() {
+                const today = new Date().toDateString();
+                
+                if (userData.lastCheckinDate === today) {
+                    userData.hasCheckedInToday = true;
+                    checkinBtn.classList.add('opacity-50');
+                    userCheckinBtn.disabled = true;
+                    userCheckinBtn.classList.add('opacity-50');
+                    checkinStatus.textContent = '今日已签到';
+                    checkinStatus.classList.add('text-green-500');
+                } else {
+                    userData.hasCheckedInToday = false;
+                    checkinBtn.classList.remove('opacity-50');
+                    userCheckinBtn.disabled = false;
+                    userCheckinBtn.classList.remove('opacity-50');
+                    checkinStatus.textContent = '今日未签到';
+                    checkinStatus.classList.remove('text-green-500');
+                    checkinStatus.classList.add('text-yellow-500');
+                }
+            }
+            
+            // 执行每日签到
+            function performCheckin() {
+                if (userData.hasCheckedInToday) return;
+                
+                const today = new Date().toDateString();
+                userData.lastCheckinDate = today;
+                userData.hasCheckedInToday = true;
+                userData.remainingScans += CHECKIN_REWARD;
+                
+                saveUserData();
+                updateUsageCounter();
+                
+                // 更新签到UI
+                checkinBtn.classList.add('opacity-50');
+                userCheckinBtn.disabled = true;
+                userCheckinBtn.classList.add('opacity-50');
+                checkinStatus.textContent = '今日已签到';
+                checkinStatus.classList.add('text-green-500');
+                checkinStatus.classList.remove('text-yellow-500');
+                
+                // 显示签到成功弹窗
+                checkinModal.classList.add('show');
+            }
+            
+            // 减少使用次数
+            function decrementUsage() {
+                if (userData.remainingScans > 0) {
+                    userData.remainingScans--;
+                    saveUserData();
+                    updateUsageCounter();
+                    return true;
+                }
+                return false;
+            }
+            
+            // 添加扫描历史
+            function addScanHistory(imagePreview, result, health) {
+                userData.scanHistory.push({
+                    date: new Date().toISOString(),
+                    imageData: imagePreview.src,
+                    result: result,
+                    healthRating: health
+                });
+                
+                // 限制历史记录数量，防止localStorage过大
+                if (userData.scanHistory.length > 20) {
+                    userData.scanHistory.shift(); // 移除最旧的记录
+                }
+                
+                saveUserData();
+            }
+            
+            // 检查深色模式偏好
+            function checkDarkModePreference() {
+                const prefersDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                darkModeToggle.checked = prefersDarkMode;
+            }
+            
+            // 初始化标签页切换
+            function initTabs() {
+                bottomNavItems.forEach(item => {
+                    item.addEventListener('click', () => {
+                        // 移除所有活动状态
+                        bottomNavItems.forEach(navItem => {
+                            navItem.classList.remove('active');
+                        });
+                        
+                        // 添加当前活动状态
+                        item.classList.add('active');
+                        
+                        // 隐藏所有tab内容
+                        homeTab.classList.add('hidden');
+                        shopTab.classList.add('hidden');
+                        userTab.classList.add('hidden');
+                        
+                        // 显示选中的tab
+                        const tabName = item.getAttribute('data-tab');
+                        if (tabName === 'home') {
+                            homeTab.classList.remove('hidden');
+                        } else if (tabName === 'shop') {
+                            shopTab.classList.remove('hidden');
+                        } else if (tabName === 'user') {
+                            userTab.classList.remove('hidden');
+                        }
+                    });
+                });
+            }
+            
+            // 事件监听器设置
+            // 图片上传和拍照
             uploadBtn.addEventListener('click', () => {
                 fileInput.click();
             });
@@ -509,37 +1113,36 @@
             takePhotoBtn.addEventListener('click', () => {
                 // 使用专门的camera capture方式，确保打开相机而不是上传图片
                 if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                    // 创建临时视频和拍照界面
-                    const cameraModal = document.createElement('div');
-                    cameraModal.className = 'modal show';
-                    cameraModal.innerHTML = `
-                        <div class="modal-content" style="max-width: 100%; width: 100%; height: 100%; max-height: 100%; border-radius: 0; display: flex; flex-direction: column;">
-                            <div class="p-4 flex justify-between items-center bg-black text-white">
-                                <span class="font-semibold">拍摄配料表</span>
-                                <button id="closeCameraBtn" class="p-1">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
-                            </div>
-                            <div style="flex-grow: 1; position: relative; background: #000;">
-                                <video id="cameraPreview" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
-                                <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
-                                    <div class="border-2 border-dashed border-white rounded-lg w-4/5 h-3/5 opacity-50"></div>
-                                </div>
-                            </div>
-                            <div class="p-4 bg-black flex justify-center">
-                                <button id="takePictureBtn" class="rounded-full bg-white w-16 h-16 flex items-center justify-center">
-                                    <div class="rounded-full bg-white w-14 h-14 border-2 border-black"></div>
-                                </button>
+                    // 创建相机UI
+                    const cameraContainer = document.createElement('div');
+                    cameraContainer.className = 'camera-container';
+                    cameraContainer.innerHTML = `
+                        <div class="camera-header">
+                            <span class="font-semibold">拍摄配料表</span>
+                            <button id="closeCameraBtn" class="p-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="camera-viewer">
+                            <video id="cameraView" class="camera-view" autoplay playsinline></video>
+                            <div class="camera-frame"></div>
+                            <div class="absolute bottom-4 left-0 right-0 text-center text-white text-sm">
+                                请将配料表对准框内
                             </div>
                         </div>
+                        <div class="camera-footer">
+                            <button id="takePhotoBtn" class="camera-button">
+                                <div class="camera-button-inner"></div>
+                            </button>
+                        </div>
                     `;
-                    document.body.appendChild(cameraModal);
+                    document.body.appendChild(cameraContainer);
                     
-                    const video = document.getElementById('cameraPreview');
+                    const video = document.getElementById('cameraView');
                     const closeCameraBtn = document.getElementById('closeCameraBtn');
-                    const takePictureBtn = document.getElementById('takePictureBtn');
+                    const takePictureBtn = document.getElementById('takePhotoBtn');
                     
                     // 关闭相机
                     const closeCamera = () => {
@@ -548,7 +1151,7 @@
                             tracks.forEach(track => track.stop());
                             video.srcObject = null;
                         }
-                        cameraModal.remove();
+                        cameraContainer.remove();
                     };
                     
                     closeCameraBtn.addEventListener('click', closeCamera);
@@ -628,6 +1231,50 @@
                 fileInput.value = '';
                 selectedFile = null;
                 analyzeBtn.disabled = true;
+            });
+            
+            // 签到相关事件监听
+            checkinBtn.addEventListener('click', performCheckin);
+            userCheckinBtn.addEventListener('click', performCheckin);
+            closeCheckinBtn.addEventListener('click', () => {
+                checkinModal.classList.remove('show');
+            });
+            
+            // 打赏相关事件监听
+            donateBtn.addEventListener('click', () => {
+                donateModal.classList.add('show');
+            });
+            
+            closeDonateBtn.addEventListener('click', () => {
+                donateModal.classList.remove('show');
+            });
+            
+            // 用量用尽弹窗
+            gotoShopBtn.addEventListener('click', () => {
+                // 隐藏弹窗
+                usageExhaustedModal.classList.remove('show');
+                
+                // 切换到商店标签
+                bottomNavItems.forEach(navItem => {
+                    navItem.classList.remove('active');
+                    if (navItem.getAttribute('data-tab') === 'shop') {
+                        navItem.classList.add('active');
+                    }
+                });
+                
+                // 显示商店
+                homeTab.classList.add('hidden');
+                userTab.classList.add('hidden');
+                shopTab.classList.remove('hidden');
+            });
+            
+            configApiBtn.addEventListener('click', () => {
+                // 隐藏弹窗
+                usageExhaustedModal.classList.remove('show');
+                
+                // 显示设置
+                settingsModal.classList.add('show');
+                loadSettings();
             });
             
             // Function to create star rating
@@ -715,6 +1362,24 @@
                 }
             });
             
+            checkinModal.addEventListener('click', (e) => {
+                if (e.target === checkinModal) {
+                    checkinModal.classList.remove('show');
+                }
+            });
+            
+            donateModal.addEventListener('click', (e) => {
+                if (e.target === donateModal) {
+                    donateModal.classList.remove('show');
+                }
+            });
+            
+            usageExhaustedModal.addEventListener('click', (e) => {
+                if (e.target === usageExhaustedModal) {
+                    usageExhaustedModal.classList.remove('show');
+                }
+            });
+            
             // 显示/隐藏高级选项
             toggleAdvancedBtn.addEventListener('click', () => {
                 const isHidden = advancedOptions.classList.contains('hidden');
@@ -724,6 +1389,15 @@
                 } else {
                     advancedOptions.classList.add('hidden');
                     toggleAdvancedBtn.querySelector('svg').style.transform = 'rotate(0)';
+                }
+            });
+            
+            // 深色模式切换
+            darkModeToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
                 }
             });
             
@@ -856,8 +1530,21 @@
             analyzeBtn.addEventListener('click', async () => {
                 if (!selectedFile) return;
                 
-                // 获取当前设置
+                // 检查是否有足够的剩余次数或自定义API
                 const settings = getSettings();
+                
+                if (!settings.apiKey && userData.remainingScans <= 0) {
+                    // 显示提示用户购买或配置API的弹窗
+                    usageExhaustedModal.classList.add('show');
+                    return;
+                }
+                
+                // 如果使用免费额度，减少使用次数
+                if (!settings.apiKey) {
+                    decrementUsage();
+                }
+                
+                // 获取当前设置
                 
                 // 显示加载状态
                 loadingSection.classList.remove('hidden');
@@ -907,8 +1594,10 @@
                         
                         // Try to extract health rating from the response
                         const ratingMatch = response.content.match(/健康评级[：:]\s*(\d)[颗⭐星]/);
+                        let healthRatingValue = 0;
                         if (ratingMatch && ratingMatch[1]) {
-                            renderHealthRating(parseInt(ratingMatch[1]));
+                            healthRatingValue = parseInt(ratingMatch[1]);
+                            renderHealthRating(healthRatingValue);
                         } else {
                             // Default to no stars if we can't find a rating
                             renderHealthRating(0);
@@ -918,6 +1607,9 @@
                         
                         // If response is complete, enable the analyze button again
                         if (response.status === 'complete') {
+                            // 保存到历史记录
+                            addScanHistory(imagePreview, response.content, healthRatingValue);
+                            
                             analyzeBtn.disabled = false;
                         }
                     }
@@ -1155,11 +1847,16 @@
                     
                     // 尝试提取健康评级
                     const ratingMatch = content.match(/健康评级[：:]\s*(\d)[颗⭐星]/);
+                    let healthRatingValue = 0;
                     if (ratingMatch && ratingMatch[1]) {
-                        renderHealthRating(parseInt(ratingMatch[1]));
+                        healthRatingValue = parseInt(ratingMatch[1]);
+                        renderHealthRating(healthRatingValue);
                     } else {
                         renderHealthRating(0);
                     }
+                    
+                    // 保存到历史记录
+                    addScanHistory(imagePreview, content, healthRatingValue);
                     
                     resultSection.classList.remove('hidden');
                     analyzeBtn.disabled = false;
@@ -1194,6 +1891,10 @@
                 resultContent.innerHTML = `<div class="p-4 bg-red-50 dark:bg-red-900 dark:bg-opacity-20 text-red-600 dark:text-red-400 rounded-lg">${message}</div>`;
                 resultSection.classList.remove('hidden');
             }
+            
+            // 初始化
+            initApp();
+            initTabs();
         });
     </script>
 </body>
