@@ -10,7 +10,9 @@ const ASSETS_TO_CACHE = [
   '/icon-192x192.png',
   '/icon-512x512.png',
   '/wxpay.png',
-  '/alipay.png'
+  '/alipay.png',
+  '/wxpay-icon.png',
+  '/alipay-icon.png'
 ];
 
 // 安装Service Worker
