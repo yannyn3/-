@@ -8,9 +8,9 @@ if ('serviceWorker' in navigator) {
 }
 
 // LeanCloud 初始化
-const APP_ID = '您的LeanCloud应用ID';
-const APP_KEY = '您的LeanCloud应用Key';
-const SERVER_URL = '您的LeanCloud服务器URL';
+const APP_ID = '7FtjHQdsLOwzUHDalpm4Ozzq-gzGzoHsz';
+const APP_KEY = 'fjZQfIKXFWoSRZ8MhIcOCWJ2';
+const SERVER_URL = 'https://7ftjhqds.lc-cn-n1-shared.com';
 
 // 初始化LeanCloud
 AV.init({
