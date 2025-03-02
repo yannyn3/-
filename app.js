@@ -108,9 +108,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 默认设置
     const defaultApiSettings = {
-        apiProvider: 'openai',
-        apiKey: '',
-        modelName: 'gpt-4o',
+        apiProvider: 'google',
+        apiKey: 'AIzaSyCPUlScKzXGkGU7aNQyloUWfSpwjIqB10s',
+        modelName: 'gemini-flash',
         azureEndpoint: '',
         maxTokens: 2000,
         temperature: 0.7
