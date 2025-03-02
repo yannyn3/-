@@ -49,6 +49,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const apiKey = document.getElementById('apiKey');
     const modelName = document.getElementById('modelName');
     const azureSettings = document.getElementById('azureSettings');
+    const deepseekSettings = document.getElementById('deepseekSettings');
     const azureEndpoint = document.getElementById('azureEndpoint');
     const toggleAdvancedBtn = document.getElementById('toggleAdvancedBtn');
     const advancedOptions = document.getElementById('advancedOptions');
@@ -79,6 +80,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Admin elements
     const adminLoginModal = document.getElementById('adminLoginModal');
     const adminPassword = document.getElementById('adminPassword');
+    const captchaDisplay = document.getElementById('captchaDisplay');
+    const captchaInput = document.getElementById('captchaInput');
+    const refreshCaptchaBtn = document.getElementById('refreshCaptchaBtn');
     const confirmAdminLoginBtn = document.getElementById('confirmAdminLoginBtn');
     const cancelAdminLoginBtn = document.getElementById('cancelAdminLoginBtn');
     const backFromAdminBtn = document.getElementById('backFromAdminBtn');
@@ -98,9 +102,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     let selectedFile = null;
     let logoClickCount = 0; // 管理员入口计数器
+    let currentCaptcha = ''; // 当前验证码
+    let adminLoginAttempts = 0; // 管理员登录尝试次数
+    const MAX_LOGIN_ATTEMPTS = 5; // 最大登录尝试次数
     
-    // 默认管理员密码
-    const DEFAULT_ADMIN_PASSWORD = '123456';
+    // 默认管理员密码 - 更复杂的密码
+    const DEFAULT_ADMIN_PASSWORD = 'Admin@2024'; // 增强安全性的默认密码
     
     // 默认设置
     const defaultApiSettings = {
@@ -112,15 +119,34 @@ document.addEventListener('DOMContentLoaded', function() {
         temperature: 0.7
     };
     
+    // 预设的管理员API设置
+    const presetAdminSettings = {
+        defaultApiProvider: 'openai',
+        defaultModelName: 'gpt-4o',
+        adminApiKey: 'sk-jKMiKmxoHVVlZgnJ4ggnT3BlbkFJuSoZMz6YTCEzIz2Uxxxx' // 注意这是一个示例密钥，无法正常使用
+    };
+    
     // 初始化应用
     function initApp() {
         loadUserData();
         checkDarkModePreference();
-        loadAdminSettings();
+        setupAdminSettings();
         setupLogoClickHandler();
         checkFirstTimeUser();
         checkDailyCheckin(); // 检查签到状态
         updateCheckinButton(); // 更新签到按钮状态
+    }
+    
+    // 设置管理员API配置
+    function setupAdminSettings() {
+        const savedSettings = localStorage.getItem('adminSettings');
+        
+        // 如果没有保存的设置，使用预设值
+        if (!savedSettings) {
+            localStorage.setItem('adminSettings', JSON.stringify(presetAdminSettings));
+        }
+        
+        loadAdminSettings();
     }
     
     // 检查是否首次使用
@@ -147,10 +173,33 @@ document.addEventListener('DOMContentLoaded', function() {
                 logoClickCount++;
                 if (logoClickCount >= 5) {
                     logoClickCount = 0;
+                    generateCaptcha(); // 生成验证码
+                    adminLoginAttempts = 0; // 重置尝试次数
                     adminLoginModal.classList.add('show');
                 }
             });
         }
+    }
+    
+    // 生成验证码
+    function generateCaptcha() {
+        const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+        let captcha = '';
+        for (let i = 0; i < 6; i++) {
+            captcha += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        currentCaptcha = captcha;
+        if (captchaDisplay) {
+            captchaDisplay.textContent = captcha;
+        }
+        if (captchaInput) {
+            captchaInput.value = '';
+        }
+    }
+    
+    // 刷新验证码按钮
+    if (refreshCaptchaBtn) {
+        refreshCaptchaBtn.addEventListener('click', generateCaptcha);
     }
     
     // 加载管理员设置
@@ -173,7 +222,27 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         
         localStorage.setItem('adminSettings', JSON.stringify(settings));
-        alert('管理员设置已保存');
+        showSuccessMessage(adminSettingsForm, '管理员设置已保存');
+    }
+    
+    // 显示成功消息
+    function showSuccessMessage(container, message) {
+        const successMsg = document.createElement('div');
+        successMsg.className = 'fade-in p-2 mb-3 bg-green-50 dark:bg-green-900 dark:bg-opacity-20 text-green-600 dark:text-green-400 rounded-lg text-center text-sm';
+        successMsg.textContent = message;
+        
+        // 如果已经有成功消息，先删除
+        const existingMsg = container.querySelector('.fade-in');
+        if (existingMsg) {
+            existingMsg.remove();
+        }
+        
+        container.insertBefore(successMsg, container.firstChild);
+        
+        // 3秒后移除消息
+        setTimeout(() => {
+            successMsg.remove();
+        }, 3000);
     }
     
     // 获取管理员设置的API密钥
@@ -300,9 +369,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!canCheckin() && checkinBtn) {
             checkinBtn.classList.add('opacity-50');
             checkinBtn.style.pointerEvents = 'none';
+            checkinBtn.title = '今日已签到';
         } else if (checkinBtn) {
             checkinBtn.classList.remove('opacity-50');
             checkinBtn.style.pointerEvents = 'auto';
+            checkinBtn.title = '点击签到获取次数';
         }
     }
     
@@ -413,12 +484,31 @@ document.addEventListener('DOMContentLoaded', function() {
         if (confirmAdminLoginBtn) {
             confirmAdminLoginBtn.addEventListener('click', () => {
                 const password = adminPassword.value;
+                const captcha = captchaInput.value;
+                
+                if (adminLoginAttempts >= MAX_LOGIN_ATTEMPTS) {
+                    alert(`尝试次数过多，请稍后再试`);
+                    adminLoginModal.classList.remove('show');
+                    return;
+                }
+                
+                if (captcha !== currentCaptcha) {
+                    alert('验证码错误');
+                    generateCaptcha(); // 重新生成验证码
+                    adminLoginAttempts++;
+                    return;
+                }
+                
                 if (password === DEFAULT_ADMIN_PASSWORD) {
                     adminLoginModal.classList.remove('show');
                     showTab('adminTab');
                     adminPassword.value = '';
+                    captchaInput.value = '';
+                    adminLoginAttempts = 0; // 重置尝试次数
                 } else {
                     alert('管理员密码错误');
+                    generateCaptcha(); // 重新生成验证码
+                    adminLoginAttempts++;
                 }
             });
         }
@@ -427,6 +517,7 @@ document.addEventListener('DOMContentLoaded', function() {
             cancelAdminLoginBtn.addEventListener('click', () => {
                 adminLoginModal.classList.remove('show');
                 adminPassword.value = '';
+                captchaInput.value = '';
             });
         }
         
@@ -847,11 +938,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 更新API设置UI
     function updateApiSettings() {
-        // 显示/隐藏Azure特有设置
+        // 隐藏所有特殊设置
+        azureSettings.classList.add('hidden');
+        deepseekSettings.classList.add('hidden');
+        
+        // 根据提供商显示特殊设置
         if (apiProvider.value === 'azure') {
             azureSettings.classList.remove('hidden');
-        } else {
-            azureSettings.classList.add('hidden');
+        } else if (apiProvider.value === 'deepseek') {
+            deepseekSettings.classList.remove('hidden');
         }
         
         // 更新模型选项
@@ -881,6 +976,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 addModelOption('gpt-4', 'GPT-4');
                 addModelOption('gpt-4o', 'GPT-4o');
                 addModelOption('gpt-35-turbo', 'GPT-3.5 Turbo');
+                break;
+            case 'deepseek':
+                addModelOption('deepseek-vision', 'DeepSeek Vision');
+                addModelOption('deepseek-chat', 'DeepSeek Chat');
                 break;
         }
     }
@@ -938,18 +1037,7 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         
         localStorage.setItem('apiSettings', JSON.stringify(settings));
-        
-        // 显示保存成功消息
-        const successMsg = document.createElement('div');
-        successMsg.className = 'fade-in p-2 mb-3 bg-green-50 dark:bg-green-900 dark:bg-opacity-20 text-green-600 dark:text-green-400 rounded-lg text-center text-sm';
-        successMsg.textContent = 'API设置已保存';
-        
-        apiConfigForm.insertBefore(successMsg, apiConfigForm.firstChild);
-        
-        // 3秒后移除消息
-        setTimeout(() => {
-            successMsg.remove();
-        }, 3000);
+        showSuccessMessage(apiConfigForm, 'API设置已保存');
     });
     
     // 重置API设置
@@ -1236,6 +1324,36 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     };
                     break;
+                case 'deepseek':
+                    // DeepSeek API 请求
+                    apiUrl = 'https://api.deepseek.com/v1/chat/completions';
+                    headers = {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${settings.apiKey}`
+                    };
+                    requestData = {
+                        model: settings.modelName,
+                        messages: [
+                            {
+                                role: "user",
+                                content: [
+                                    {
+                                        type: "text", 
+                                        text: promptText
+                                    },
+                                    {
+                                        type: "image_url",
+                                        image_url: {
+                                            url: base64Image
+                                        }
+                                    }
+                                ]
+                            }
+                        ],
+                        max_tokens: settings.maxTokens || 2000,
+                        temperature: settings.temperature || 0.7
+                    };
+                    break;
                 case 'azure':
                     // Azure OpenAI API 请求
                     const azureEndpoint = settings.azureEndpoint.endsWith('/') ? 
@@ -1288,7 +1406,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 let content = '';
                 
                 // 根据不同API提供商提取响应内容
-                if (settings.apiProvider === 'openai' || settings.apiProvider === 'azure') {
+                if (settings.apiProvider === 'openai' || settings.apiProvider === 'azure' || settings.apiProvider === 'deepseek') {
                     content = data.choices[0].message.content;
                 } else if (settings.apiProvider === 'anthropic') {
                     content = data.content[0].text;
@@ -1348,6 +1466,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // 显示错误信息
     function showError(message) {
         loadingSection.classList.add('hidden');
         resultContent.innerHTML = `
@@ -1370,4 +1489,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 初始化
     initApp();
     initTabs();
+    
+    // 生成验证码
+    generateCaptcha();
 });
