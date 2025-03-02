@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Tab elements
     const homeTab = document.getElementById('homeTab');
     const historyTab = document.getElementById('historyTab');
-    const adminTab = document.getElementById('adminTab');
+    const userTab = document.getElementById('userTab');
     const bottomNavItems = document.querySelectorAll('.bottom-nav-item');
     
     // Settings elements
@@ -68,31 +68,27 @@ document.addEventListener('DOMContentLoaded', function() {
     const closeGuideBtn = document.getElementById('closeGuideBtn');
     
     // History elements
-    const historyBtn = document.getElementById('historyBtn');
     const backFromHistoryBtn = document.getElementById('backFromHistoryBtn');
     const historyList = document.getElementById('historyList');
+    const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+    const clearHistoryConfirmModal = document.getElementById('clearHistoryConfirmModal');
+    const cancelClearHistoryBtn = document.getElementById('cancelClearHistoryBtn');
+    const confirmClearHistoryBtn = document.getElementById('confirmClearHistoryBtn');
+    const userHistoryBtn = document.getElementById('userHistoryBtn');
+    
+    // User profile elements
+    const userRemainingScans = document.getElementById('userRemainingScans');
+    const totalScans = document.getElementById('totalScans');
     
     // Checkin elements
-    const checkinBtn = document.getElementById('checkinBtn');
+    const userCheckinBtn = document.getElementById('userCheckinBtn');
+    const checkinStatus = document.getElementById('checkinStatus');
     const checkinModal = document.getElementById('checkinModal');
     const closeCheckinBtn = document.getElementById('closeCheckinBtn');
     
-    // Admin elements
-    const adminLoginModal = document.getElementById('adminLoginModal');
-    const adminPassword = document.getElementById('adminPassword');
-    const captchaDisplay = document.getElementById('captchaDisplay');
-    const captchaInput = document.getElementById('captchaInput');
-    const refreshCaptchaBtn = document.getElementById('refreshCaptchaBtn');
-    const confirmAdminLoginBtn = document.getElementById('confirmAdminLoginBtn');
-    const cancelAdminLoginBtn = document.getElementById('cancelAdminLoginBtn');
-    const backFromAdminBtn = document.getElementById('backFromAdminBtn');
-    const adminSettingsForm = document.getElementById('adminSettingsForm');
-    const defaultApiProvider = document.getElementById('defaultApiProvider');
-    const defaultModelName = document.getElementById('defaultModelName');
-    const adminApiKey = document.getElementById('adminApiKey');
-    
     // About button
     const aboutBtn = document.getElementById('aboutBtn');
+    const settingsAboutBtn = document.getElementById('settingsAboutBtn');
     
     // Loading element
     const globalLoading = document.getElementById('globalLoading');
@@ -101,13 +97,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const darkModeToggle = document.getElementById('darkModeToggle');
     
     let selectedFile = null;
-    let logoClickCount = 0; // 管理员入口计数器
-    let currentCaptcha = ''; // 当前验证码
-    let adminLoginAttempts = 0; // 管理员登录尝试次数
-    const MAX_LOGIN_ATTEMPTS = 5; // 最大登录尝试次数
     
-    // 默认管理员密码 - 更复杂的密码
-    const DEFAULT_ADMIN_PASSWORD = 'Admin@2024'; // 增强安全性的默认密码
+    // 内置API密钥（替换为您的实际API密钥）
+    // 注意：实际应用中，最好从服务器获取API密钥，而不是硬编码
+    const BUILT_IN_API = {
+        provider: 'openai',
+        key: 'sk-your-openai-api-key-here', // 替换为您的实际API密钥
+        model: 'gpt-4o'
+    };
     
     // 默认设置
     const defaultApiSettings = {
@@ -119,34 +116,14 @@ document.addEventListener('DOMContentLoaded', function() {
         temperature: 0.7
     };
     
-    // 预设的管理员API设置
-    const presetAdminSettings = {
-        defaultApiProvider: 'openai',
-        defaultModelName: 'gpt-4o',
-        adminApiKey: 'sk-jKMiKmxoHVVlZgnJ4ggnT3BlbkFJuSoZMz6YTCEzIz2Uxxxx' // 注意这是一个示例密钥，无法正常使用
-    };
-    
     // 初始化应用
     function initApp() {
         loadUserData();
         checkDarkModePreference();
-        setupAdminSettings();
-        setupLogoClickHandler();
         checkFirstTimeUser();
         checkDailyCheckin(); // 检查签到状态
         updateCheckinButton(); // 更新签到按钮状态
-    }
-    
-    // 设置管理员API配置
-    function setupAdminSettings() {
-        const savedSettings = localStorage.getItem('adminSettings');
-        
-        // 如果没有保存的设置，使用预设值
-        if (!savedSettings) {
-            localStorage.setItem('adminSettings', JSON.stringify(presetAdminSettings));
-        }
-        
-        loadAdminSettings();
+        updateUserStats(); // 更新用户统计信息
     }
     
     // 检查是否首次使用
@@ -163,96 +140,6 @@ document.addEventListener('DOMContentLoaded', function() {
         closeGuideBtn.addEventListener('click', () => {
             firstTimeGuide.classList.add('hidden');
         });
-    }
-    
-    // 设置Logo点击处理 (管理员入口)
-    function setupLogoClickHandler() {
-        const appTitle = document.querySelector('h1');
-        if (appTitle) {
-            appTitle.addEventListener('click', function() {
-                logoClickCount++;
-                if (logoClickCount >= 5) {
-                    logoClickCount = 0;
-                    generateCaptcha(); // 生成验证码
-                    adminLoginAttempts = 0; // 重置尝试次数
-                    adminLoginModal.classList.add('show');
-                }
-            });
-        }
-    }
-    
-    // 生成验证码
-    function generateCaptcha() {
-        const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-        let captcha = '';
-        for (let i = 0; i < 6; i++) {
-            captcha += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        currentCaptcha = captcha;
-        if (captchaDisplay) {
-            captchaDisplay.textContent = captcha;
-        }
-        if (captchaInput) {
-            captchaInput.value = '';
-        }
-    }
-    
-    // 刷新验证码按钮
-    if (refreshCaptchaBtn) {
-        refreshCaptchaBtn.addEventListener('click', generateCaptcha);
-    }
-    
-    // 加载管理员设置
-    function loadAdminSettings() {
-        const savedSettings = localStorage.getItem('adminSettings');
-        if (savedSettings) {
-            const settings = JSON.parse(savedSettings);
-            if (defaultApiProvider) defaultApiProvider.value = settings.defaultApiProvider || 'openai';
-            if (defaultModelName) defaultModelName.value = settings.defaultModelName || 'gpt-4o';
-            if (adminApiKey) adminApiKey.value = settings.adminApiKey || '';
-        }
-    }
-    
-    // 保存管理员设置
-    function saveAdminSettings() {
-        const settings = {
-            defaultApiProvider: defaultApiProvider ? defaultApiProvider.value : 'openai',
-            defaultModelName: defaultModelName ? defaultModelName.value : 'gpt-4o',
-            adminApiKey: adminApiKey ? adminApiKey.value : ''
-        };
-        
-        localStorage.setItem('adminSettings', JSON.stringify(settings));
-        showSuccessMessage(adminSettingsForm, '管理员设置已保存');
-    }
-    
-    // 显示成功消息
-    function showSuccessMessage(container, message) {
-        const successMsg = document.createElement('div');
-        successMsg.className = 'fade-in p-2 mb-3 bg-green-50 dark:bg-green-900 dark:bg-opacity-20 text-green-600 dark:text-green-400 rounded-lg text-center text-sm';
-        successMsg.textContent = message;
-        
-        // 如果已经有成功消息，先删除
-        const existingMsg = container.querySelector('.fade-in');
-        if (existingMsg) {
-            existingMsg.remove();
-        }
-        
-        container.insertBefore(successMsg, container.firstChild);
-        
-        // 3秒后移除消息
-        setTimeout(() => {
-            successMsg.remove();
-        }, 3000);
-    }
-    
-    // 获取管理员设置的API密钥
-    function getAdminApiKey() {
-        const savedSettings = localStorage.getItem('adminSettings');
-        if (savedSettings) {
-            const settings = JSON.parse(savedSettings);
-            return settings.adminApiKey || '';
-        }
-        return '';
     }
     
     // 显示或隐藏全局加载状态
@@ -277,7 +164,9 @@ document.addEventListener('DOMContentLoaded', function() {
             userObj = {
                 usageCount: 10, // 每个新用户有10次免费使用机会
                 history: [],
-                lastCheckin: null // 上次签到时间
+                lastCheckin: null, // 上次签到时间
+                totalScansCount: 0, // 累计扫描次数
+                checkinDays: 0 // 签到天数
             };
             saveUserData(userObj);
         }
@@ -286,6 +175,24 @@ document.addEventListener('DOMContentLoaded', function() {
         updateUsageCounter(userObj.usageCount);
         
         return userObj;
+    }
+    
+    // 更新用户统计信息
+    function updateUserStats() {
+        const userData = loadUserData();
+        
+        // 更新剩余次数
+        if (userRemainingScans) {
+            userRemainingScans.textContent = userData.usageCount;
+        }
+        
+        // 更新累计扫描次数
+        if (totalScans) {
+            totalScans.textContent = userData.totalScansCount || 0;
+        }
+        
+        // 更新签到圆点
+        renderCheckinCircles(userData.checkinDays || 0);
     }
     
     // 保存用户数据
@@ -298,6 +205,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (usageCounter) {
             usageCounter.textContent = `剩余次数: ${count}`;
         }
+        
+        if (userRemainingScans) {
+            userRemainingScans.textContent = count;
+        }
     }
     
     // 减少使用次数
@@ -309,8 +220,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         userData.usageCount -= 1;
+        userData.totalScansCount = (userData.totalScansCount || 0) + 1;
         saveUserData(userData);
         updateUsageCounter(userData.usageCount);
+        updateUserStats();
         return true;
     }
     
@@ -320,6 +233,7 @@ document.addEventListener('DOMContentLoaded', function() {
         userData.usageCount += amount;
         saveUserData(userData);
         updateUsageCounter(userData.usageCount);
+        updateUserStats();
         return true;
     }
     
@@ -353,33 +267,111 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         const userData = loadUserData();
-        userData.lastCheckin = new Date().toISOString();
-        incrementUsageCount(1); // 签到增加1次使用次数
+        const now = new Date();
+        const today = now.toDateString();
+        
+        // 检查是否连续签到
+        let isConsecutive = false;
+        if (userData.lastCheckin) {
+            const lastCheckinDate = new Date(userData.lastCheckin);
+            const yesterday = new Date(now);
+            yesterday.setDate(yesterday.getDate() - 1);
+            
+            if (lastCheckinDate.toDateString() === yesterday.toDateString()) {
+                isConsecutive = true;
+            }
+        }
+        
+        userData.lastCheckin = now.toISOString();
+        
+        // 更新签到天数
+        if (isConsecutive) {
+            userData.checkinDays = (userData.checkinDays || 0) + 1;
+        } else {
+            userData.checkinDays = 1;
+        }
+        
+        // 计算签到奖励
+        let reward = 1; // 基础奖励1次
+        
+        // 连续签到7天额外奖励
+        if (userData.checkinDays === 7) {
+            reward += 2;
+            userData.checkinDays = 0; // 重置签到周期
+        }
+        
+        // 增加使用次数
+        userData.usageCount += reward;
         saveUserData(userData);
+        
+        // 更新UI
+        updateUsageCounter(userData.usageCount);
+        updateCheckinButton();
+        updateUserStats();
         
         // 显示签到成功弹窗
         checkinModal.classList.add('show');
-        
-        // 更新签到按钮状态
-        updateCheckinButton();
     }
     
     // 更新签到按钮状态
     function updateCheckinButton() {
-        if (!canCheckin() && checkinBtn) {
-            checkinBtn.classList.add('opacity-50');
-            checkinBtn.style.pointerEvents = 'none';
-            checkinBtn.title = '今日已签到';
-        } else if (checkinBtn) {
-            checkinBtn.classList.remove('opacity-50');
-            checkinBtn.style.pointerEvents = 'auto';
-            checkinBtn.title = '点击签到获取次数';
+        if (!canCheckin()) {
+            if (userCheckinBtn) {
+                userCheckinBtn.disabled = true;
+                userCheckinBtn.classList.add('opacity-50');
+                userCheckinBtn.classList.add('cursor-not-allowed');
+            }
+            if (checkinStatus) {
+                checkinStatus.textContent = '今日已签到';
+                checkinStatus.classList.remove('bg-yellow-100', 'text-yellow-600');
+                checkinStatus.classList.add('bg-green-100', 'text-green-600');
+            }
+        } else {
+            if (userCheckinBtn) {
+                userCheckinBtn.disabled = false;
+                userCheckinBtn.classList.remove('opacity-50');
+                userCheckinBtn.classList.remove('cursor-not-allowed');
+            }
+            if (checkinStatus) {
+                checkinStatus.textContent = '今日未签到';
+                checkinStatus.classList.remove('bg-green-100', 'text-green-600');
+                checkinStatus.classList.add('bg-yellow-100', 'text-yellow-600');
+            }
         }
     }
     
     // 检查每日签到状态
     function checkDailyCheckin() {
         updateCheckinButton();
+    }
+    
+    // 渲染签到圆点
+    function renderCheckinCircles(checkinDays) {
+        const circlesContainer = document.querySelector('.checkin-circles');
+        if (!circlesContainer) return;
+        
+        circlesContainer.innerHTML = '';
+        
+        // 创建7个圆点代表一周
+        for (let i = 1; i <= 7; i++) {
+            const circle = document.createElement('div');
+            
+            if (i <= checkinDays) {
+                // 已签到
+                circle.className = 'w-7 h-7 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center text-green-600 dark:text-green-400';
+                circle.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    </svg>
+                `;
+            } else {
+                // 未签到
+                circle.className = 'w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs';
+                circle.textContent = i;
+            }
+            
+            circlesContainer.appendChild(circle);
+        }
     }
     
     // 添加扫描历史
@@ -402,6 +394,22 @@ document.addEventListener('DOMContentLoaded', function() {
         
         userData.history.push(historyItem);
         saveUserData(userData);
+    }
+    
+    // 删除单条历史记录
+    function deleteHistoryItem(id) {
+        const userData = loadUserData();
+        userData.history = userData.history.filter(item => item.id !== id);
+        saveUserData(userData);
+        loadScanHistoryData(); // 重新加载历史记录
+    }
+    
+    // 清空所有历史记录
+    function clearAllHistory() {
+        const userData = loadUserData();
+        userData.history = [];
+        saveUserData(userData);
+        loadScanHistoryData(); // 重新加载历史记录
     }
     
     // 加载扫描历史
@@ -444,17 +452,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (tabName === 'historyTab') {
                     // 如果是点击历史记录，先加载数据
                     loadScanHistoryData();
+                } else if (tabName === 'userTab') {
+                    // 如果是点击用户页面，更新用户统计信息
+                    updateUserStats();
                 }
                 showTab(tabName);
             });
         });
         
-        // 历史记录按钮
-        if (historyBtn) {
-            historyBtn.addEventListener('click', () => {
+        // 用户页面中的历史记录按钮
+        if (userHistoryBtn) {
+            userHistoryBtn.addEventListener('click', () => {
                 loadScanHistoryData();
                 showTab('historyTab');
-                settingsModal.classList.remove('show');
             });
         }
         
@@ -465,10 +475,25 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         
-        // 管理员页面返回按钮
-        if (backFromAdminBtn) {
-            backFromAdminBtn.addEventListener('click', () => {
-                showTab('homeTab');
+        // 清空历史记录按钮
+        if (clearHistoryBtn) {
+            clearHistoryBtn.addEventListener('click', () => {
+                clearHistoryConfirmModal.classList.add('show');
+            });
+        }
+        
+        // 清空历史记录确认按钮
+        if (confirmClearHistoryBtn) {
+            confirmClearHistoryBtn.addEventListener('click', () => {
+                clearAllHistory();
+                clearHistoryConfirmModal.classList.remove('show');
+            });
+        }
+        
+        // 取消清空历史记录按钮
+        if (cancelClearHistoryBtn) {
+            cancelClearHistoryBtn.addEventListener('click', () => {
+                clearHistoryConfirmModal.classList.remove('show');
             });
         }
         
@@ -476,62 +501,19 @@ document.addEventListener('DOMContentLoaded', function() {
         if (aboutBtn) {
             aboutBtn.addEventListener('click', () => {
                 alert('食安智查 1.0\n\n一款帮助您识别食品添加剂和安全风险的工具\n\n© 2023 All Rights Reserved');
+            });
+        }
+        
+        if (settingsAboutBtn) {
+            settingsAboutBtn.addEventListener('click', () => {
+                alert('食安智查 1.0\n\n一款帮助您识别食品添加剂和安全风险的工具\n\n© 2023 All Rights Reserved');
                 settingsModal.classList.remove('show');
             });
         }
         
-        // 管理员登录相关
-        if (confirmAdminLoginBtn) {
-            confirmAdminLoginBtn.addEventListener('click', () => {
-                const password = adminPassword.value;
-                const captcha = captchaInput.value;
-                
-                if (adminLoginAttempts >= MAX_LOGIN_ATTEMPTS) {
-                    alert(`尝试次数过多，请稍后再试`);
-                    adminLoginModal.classList.remove('show');
-                    return;
-                }
-                
-                if (captcha !== currentCaptcha) {
-                    alert('验证码错误');
-                    generateCaptcha(); // 重新生成验证码
-                    adminLoginAttempts++;
-                    return;
-                }
-                
-                if (password === DEFAULT_ADMIN_PASSWORD) {
-                    adminLoginModal.classList.remove('show');
-                    showTab('adminTab');
-                    adminPassword.value = '';
-                    captchaInput.value = '';
-                    adminLoginAttempts = 0; // 重置尝试次数
-                } else {
-                    alert('管理员密码错误');
-                    generateCaptcha(); // 重新生成验证码
-                    adminLoginAttempts++;
-                }
-            });
-        }
-        
-        if (cancelAdminLoginBtn) {
-            cancelAdminLoginBtn.addEventListener('click', () => {
-                adminLoginModal.classList.remove('show');
-                adminPassword.value = '';
-                captchaInput.value = '';
-            });
-        }
-        
-        // 管理员设置表单提交
-        if (adminSettingsForm) {
-            adminSettingsForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                saveAdminSettings();
-            });
-        }
-        
         // 签到相关事件
-        if (checkinBtn) {
-            checkinBtn.addEventListener('click', performCheckin);
+        if (userCheckinBtn) {
+            userCheckinBtn.addEventListener('click', performCheckin);
         }
         
         if (closeCheckinBtn) {
@@ -605,7 +587,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             const historyItem = document.createElement('div');
-            historyItem.className = 'p-4 border-b border-gray-200 dark:border-gray-700';
+            historyItem.className = 'p-4 border-b border-gray-200 dark:border-gray-700 relative';
             historyItem.innerHTML = `
                 <div class="flex items-start mb-2">
                     <img src="${record.imageData}" alt="食品照片" class="w-16 h-16 object-cover rounded-lg mr-3">
@@ -617,7 +599,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         <p class="mt-1 line-clamp-2 text-sm">${record.result.substring(0, 100)}...</p>
                     </div>
                 </div>
-                <button class="view-history-btn text-primary-color text-sm" data-id="${record.id}">查看详情</button>
+                <div class="flex justify-between items-center">
+                    <button class="view-history-btn text-primary-color text-sm" data-id="${record.id}">查看详情</button>
+                    <button class="delete-history-btn text-red-500 text-sm" data-id="${record.id}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                </div>
             `;
             
             historyList.appendChild(historyItem);
@@ -628,6 +617,16 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.addEventListener('click', () => {
                 const recordId = btn.getAttribute('data-id');
                 viewHistoryDetail(recordId);
+            });
+        });
+        
+        // 添加删除事件
+        document.querySelectorAll('.delete-history-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const recordId = btn.getAttribute('data-id');
+                if (confirm('确定要删除这条记录吗？')) {
+                    deleteHistoryItem(recordId);
+                }
             });
         });
     }
@@ -895,9 +894,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    adminLoginModal.addEventListener('click', (e) => {
-        if (e.target === adminLoginModal) {
-            adminLoginModal.classList.remove('show');
+    clearHistoryConfirmModal.addEventListener('click', (e) => {
+        if (e.target === clearHistoryConfirmModal) {
+            clearHistoryConfirmModal.classList.remove('show');
         }
     });
     
@@ -1040,6 +1039,26 @@ document.addEventListener('DOMContentLoaded', function() {
         showSuccessMessage(apiConfigForm, 'API设置已保存');
     });
     
+    // 显示成功消息
+    function showSuccessMessage(container, message) {
+        const successMsg = document.createElement('div');
+        successMsg.className = 'fade-in p-2 mb-3 bg-green-50 dark:bg-green-900 dark:bg-opacity-20 text-green-600 dark:text-green-400 rounded-lg text-center text-sm';
+        successMsg.textContent = message;
+        
+        // 如果已经有成功消息，先删除
+        const existingMsg = container.querySelector('.fade-in');
+        if (existingMsg) {
+            existingMsg.remove();
+        }
+        
+        container.insertBefore(successMsg, container.firstChild);
+        
+        // 3秒后移除消息
+        setTimeout(() => {
+            successMsg.remove();
+        }, 3000);
+    }
+    
     // 重置API设置
     resetApiSettingsBtn.addEventListener('click', () => {
         if (confirm('确定要重置API设置吗？所有自定义设置将丢失。')) {
@@ -1063,19 +1082,18 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 检查是否有足够的分析次数或API配置
         const userApiSettings = getUserApiSettings();
-        const adminApiKey = getAdminApiKey();
         const hasUserApi = userApiSettings && userApiSettings.apiKey && userApiSettings.apiKey.length > 0;
-        const hasAdminApi = adminApiKey && adminApiKey.length > 0;
         const remainingUsage = getAvailableUsageCount();
         
-        if (!hasUserApi && !hasAdminApi && remainingUsage <= 0) {
+        // 如果没有用户API且次数用完
+        if (!hasUserApi && remainingUsage <= 0) {
             // 显示提示用户次数用完的弹窗
             usageExhaustedModal.classList.add('show');
             return;
         }
         
-        // 如果有次数且没有自定义API，减少使用次数
-        if (!hasUserApi && !hasAdminApi) {
+        // 如果使用的是免费次数，减少计数
+        if (!hasUserApi) {
             decrementUsageCount();
         }
         
@@ -1085,21 +1103,17 @@ document.addEventListener('DOMContentLoaded', function() {
         analyzeBtn.disabled = true;
         
         try {
-            // 使用用户配置的API
+            // 优先使用用户配置的API
             if (hasUserApi) {
                 await analyzeWithCustomApi(selectedFile, userApiSettings);
             }
-            // 使用管理员API
-            else if (hasAdminApi) {
-                await analyzeWithAdminApi(selectedFile);
-            }
-            // 使用Poe API
+            // 否则使用内置API
             else if (window.Poe) {
                 await analyzeWithPoeApi(selectedFile);
             }
-            // 所有API都不可用
+            // 如果上述方法都不可用，则使用内置的OpenAI API
             else {
-                showError('无法进行分析，没有可用的API。请在设置中配置您的API密钥或联系管理员。');
+                await analyzeWithBuiltInApi(selectedFile);
             }
         } catch (error) {
             console.error('分析错误:', error);
@@ -1109,31 +1123,24 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // 使用管理员API进行分析
-    async function analyzeWithAdminApi(file) {
-        const adminSettings = localStorage.getItem('adminSettings');
-        if (!adminSettings) {
-            throw new Error('管理员API设置不存在');
-        }
-        
-        const settings = JSON.parse(adminSettings);
-        
-        // 创建一个自定义设置对象
-        const customSettings = {
-            apiProvider: settings.defaultApiProvider || 'openai',
-            apiKey: settings.adminApiKey,
-            modelName: settings.defaultModelName || 'gpt-4o',
+    // 使用内置的API进行分析
+    async function analyzeWithBuiltInApi(file) {
+        // 使用预设的API密钥
+        const settings = {
+            apiProvider: BUILT_IN_API.provider,
+            apiKey: BUILT_IN_API.key,
+            modelName: BUILT_IN_API.model,
             temperature: 0.7,
             maxTokens: 2000
         };
         
         // 使用自定义API进行分析
-        return analyzeWithCustomApi(file, customSettings);
+        return analyzeWithCustomApi(file, settings);
     }
     
     // 使用Poe API进行分析
     async function analyzeWithPoeApi(file) {
-        // Register handler for Claude's response
+        // Register handler for response
         window.Poe.registerHandler('food-analysis-handler', (result, context) => {
             // Hide loading state when we get a response
             loadingSection.classList.add('hidden');
@@ -1418,7 +1425,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 processAnalysisResult(content);
             } catch (error) {
                 console.error('API请求错误:', error);
-                throw new Error(`API请求错误: ${error.message}`);
+                
+                // 如果API请求失败，尝试使用Poe API
+                if (window.Poe) {
+                    console.log('尝试使用Poe API作为备选...');
+                    await analyzeWithPoeApi(file);
+                } else {
+                    throw new Error(`API请求错误: ${error.message}`);
+                }
             }
         } catch (err) {
             console.error('API配置错误:', err);
@@ -1478,7 +1492,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <li>检查您的网络连接</li>
                     <li>确保上传的是清晰的配料表图片</li>
                     <li>在设置中配置API密钥</li>
-                    <li>每日签到获取更多分析次数</li>
+                    <li>在"我的"页面签到获取更多分析次数</li>
                 </ul>
             </div>
         `;
@@ -1489,7 +1503,4 @@ document.addEventListener('DOMContentLoaded', function() {
     // 初始化
     initApp();
     initTabs();
-    
-    // 生成验证码
-    generateCaptcha();
 });
