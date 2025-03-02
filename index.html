@@ -19,9 +19,9 @@
 </head>
 <body class="dark-mode light-mode min-h-screen px-4 pb-20 pt-6">
     <main id="homeTab" class="max-w-md mx-auto">
-        <header class="text-center mb-6 relative">
+        <header class="text-center mb-5 relative">
             <div class="absolute left-0 top-0 flex items-center gap-1">
-                <button id="checkinBtn" class="p-2 rounded-full bg-green-500 text-white" aria-label="签到">
+                <button id="checkinBtn" class="p-2 rounded-full bg-green-500 text-white hover:bg-green-600 transition-colors" aria-label="签到" title="每日签到">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
                     </svg>
@@ -29,28 +29,28 @@
                 <span id="usageCounter" class="usage-counter">剩余次数: 10</span>
             </div>
 
-            <button id="settingsBtn" class="absolute right-0 top-0 p-2 text-secondary-color" aria-label="设置">
+            <button id="settingsBtn" class="absolute right-0 top-0 p-2 text-secondary-color hover:text-primary-color transition-colors" aria-label="设置" title="设置">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
             </button>
-            <h1 class="text-2xl font-bold mb-2">食安智查</h1>
+            <h1 class="text-2xl font-bold mb-1">食安智查</h1>
             <p class="text-sm text-secondary-color">扫描食品配料表，获取安全评估</p>
         </header>
 
         <!-- 首次使用引导 -->
-        <div id="firstTimeGuide" class="card mb-6 hidden">
+        <div id="firstTimeGuide" class="card mb-5 hidden">
             <div class="card-header flex justify-between items-center">
                 <span>使用指南</span>
-                <button id="closeGuideBtn" class="text-secondary-color p-1">
+                <button id="closeGuideBtn" class="text-secondary-color p-1 hover:text-primary-color transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
                     </svg>
                 </button>
             </div>
             <div class="card-content">
-                <div class="space-y-4">
+                <div class="space-y-3">
                     <div class="flex items-start">
                         <div class="bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0">1</div>
                         <p>拍摄或上传清晰的食品配料表照片</p>
@@ -74,7 +74,7 @@
             </div>
         </div>
 
-        <div class="card mb-6">
+        <div class="card mb-5">
             <div class="card-header">拍摄或上传配料表</div>
             <div class="card-content">
                 <p class="text-sm text-secondary-color mb-4">请上传清晰的食品包装配料表照片，我们将识别其中的成分并分析安全性</p>
@@ -120,8 +120,8 @@
             </div>
         </div>
 
-        <div id="loadingSection" class="hidden card mb-6 fade-in">
-            <div class="card-content flex flex-col items-center justify-center py-8">
+        <div id="loadingSection" class="hidden card mb-5 fade-in">
+            <div class="card-content flex flex-col items-center justify-center py-7">
                 <div class="w-16 h-16 mb-4 relative">
                     <div class="absolute inset-0 animate-pulse bg-primary-color bg-opacity-10 rounded-full"></div>
                     <svg class="w-full h-full text-primary-color animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -137,7 +137,7 @@
         </div>
 
         <div id="resultSection" class="hidden fade-in">
-            <div class="card mb-6">
+            <div class="card mb-5">
                 <div class="card-header flex items-center justify-between">
                     <span>分析结果</span>
                     <div id="healthRating" class="flex"></div>
@@ -151,7 +151,7 @@
 
     <!-- 历史记录页面 -->
     <div id="historyTab" class="max-w-md mx-auto hidden">
-        <div class="card mb-6">
+        <div class="card mb-5">
             <div class="card-header flex items-center">
                 <button id="backFromHistoryBtn" class="mr-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -171,7 +171,7 @@
 
     <!-- 管理员设置页面 -->
     <div id="adminTab" class="max-w-md mx-auto hidden">
-        <div class="card mb-6">
+        <div class="card mb-5">
             <div class="card-header flex items-center">
                 <button id="backFromAdminBtn" class="mr-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -192,6 +192,7 @@
                                 <option value="openai">OpenAI</option>
                                 <option value="anthropic">Anthropic (Claude)</option>
                                 <option value="gemini">Google Gemini</option>
+                                <option value="deepseek">DeepSeek</option>
                                 <option value="poe">Poe API</option>
                             </select>
                         </div>
@@ -205,6 +206,7 @@
                                 <option value="claude-3-opus">Claude 3 Opus</option>
                                 <option value="claude-3-sonnet">Claude 3 Sonnet</option>
                                 <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                                <option value="deepseek-vision">DeepSeek Vision</option>
                             </select>
                         </div>
                         
@@ -226,7 +228,7 @@
         <div class="modal-content">
             <div class="card-header flex justify-between items-center">
                 <span>设置</span>
-                <button id="closeSettingsBtn" class="text-secondary-color p-1">
+                <button id="closeSettingsBtn" class="text-secondary-color p-1 hover:text-primary-color transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
@@ -242,6 +244,7 @@
                             <option value="openai">OpenAI</option>
                             <option value="anthropic">Anthropic (Claude)</option>
                             <option value="gemini">Google Gemini</option>
+                            <option value="deepseek">DeepSeek</option>
                             <option value="azure">Azure OpenAI</option>
                         </select>
                     </div>
@@ -258,8 +261,6 @@
                             <option value="gpt-4o">GPT-4o</option>
                             <option value="gpt-4">GPT-4</option>
                             <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                            <option value="claude-3-opus">Claude 3 Opus</option>
-                            <option value="claude-3-sonnet">Claude 3 Sonnet</option>
                         </select>
                     </div>
                     
@@ -267,6 +268,11 @@
                     <div id="azureSettings" class="mb-4 hidden">
                         <label for="azureEndpoint" class="form-label">Azure API 端点</label>
                         <input type="text" id="azureEndpoint" class="form-input" placeholder="https://your-resource.openai.azure.com/">
+                    </div>
+                    
+                    <!-- DeepSeek专用设置 -->
+                    <div id="deepseekSettings" class="mb-4 hidden">
+                        <p class="text-xs text-secondary-color">DeepSeek Vision 支持图像识别和分析，适合食品配料分析</p>
                     </div>
                     
                     <!-- 高级选项切换 -->
@@ -303,9 +309,9 @@
                     </div>
                 </form>
                 
-                <hr class="my-5 border-gray-200 dark:border-gray-700">
+                <hr class="my-4 border-gray-200 dark:border-gray-700">
                 
-                <div class="space-y-4">
+                <div class="space-y-3">
                     <!-- 历史记录 -->
                     <div id="historyBtn" class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm cursor-pointer">
                         <div class="flex items-center">
@@ -359,7 +365,7 @@
                 </svg>
             </div>
             <h3 class="text-xl font-bold mb-2">免费次数已用完</h3>
-            <p class="mb-6">您可以通过以下方式继续使用：</p>
+            <p class="mb-5">您可以通过以下方式继续使用：</p>
             <div class="space-y-3">
                 <button id="dailyCheckinBtn" class="btn btn-primary w-full py-2">每日签到获取次数</button>
                 <button id="configApiBtn" class="btn btn-secondary w-full py-2">配置自己的API</button>
@@ -376,7 +382,7 @@
                 </svg>
             </div>
             <h3 class="text-xl font-bold mb-2">签到成功!</h3>
-            <p class="mb-6">您已获得1次免费分析机会</p>
+            <p class="mb-5">您已获得1次免费分析机会</p>
             <button id="closeCheckinBtn" class="btn btn-primary w-full py-2">我知道了</button>
         </div>
     </div>
@@ -410,7 +416,18 @@
         <div class="modal-content text-center p-6" style="max-width: 320px;">
             <h3 class="text-xl font-bold mb-4">管理员登录</h3>
             <div class="mb-4">
-                <input type="password" id="adminPassword" class="form-input w-full" placeholder="请输入管理员密码">
+                <input type="password" id="adminPassword" class="form-input w-full mb-3" placeholder="请输入管理员密码">
+                <div id="captchaContainer" class="mb-3">
+                    <div class="flex items-center">
+                        <div id="captchaDisplay" class="flex-1 bg-gray-100 dark:bg-gray-700 p-2 rounded-l font-mono font-bold tracking-widest text-center"></div>
+                        <button id="refreshCaptchaBtn" class="px-2 py-2 bg-gray-200 dark:bg-gray-600 rounded-r">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                        </button>
+                    </div>
+                    <input type="text" id="captchaInput" class="form-input w-full mt-2" placeholder="请输入验证码">
+                </div>
             </div>
             <div class="flex space-x-3">
                 <button id="cancelAdminLoginBtn" class="btn btn-secondary flex-1 py-2">取消</button>
