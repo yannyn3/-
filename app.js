@@ -44,10 +44,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const settingsBtn = document.getElementById('settingsBtn');
     const settingsModal = document.getElementById('settingsModal');
     const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+    const apiConfigForm = document.getElementById('apiConfigForm');
+    const apiProvider = document.getElementById('apiProvider');
+    const apiKey = document.getElementById('apiKey');
+    const modelName = document.getElementById('modelName');
+    const azureSettings = document.getElementById('azureSettings');
+    const azureEndpoint = document.getElementById('azureEndpoint');
+    const toggleAdvancedBtn = document.getElementById('toggleAdvancedBtn');
+    const advancedOptions = document.getElementById('advancedOptions');
+    const maxTokens = document.getElementById('maxTokens');
+    const temperature = document.getElementById('temperature');
+    const temperatureValue = document.getElementById('temperatureValue');
+    const resetApiSettingsBtn = document.getElementById('resetApiSettingsBtn');
     
     // Usage exhausted elements
     const usageExhaustedModal = document.getElementById('usageExhaustedModal');
     const configApiBtn = document.getElementById('configApiBtn');
+    const dailyCheckinBtn = document.getElementById('dailyCheckinBtn');
     
     // Guide elements
     const firstTimeGuide = document.getElementById('firstTimeGuide');
@@ -57,6 +70,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const historyBtn = document.getElementById('historyBtn');
     const backFromHistoryBtn = document.getElementById('backFromHistoryBtn');
     const historyList = document.getElementById('historyList');
+    
+    // Checkin elements
+    const checkinBtn = document.getElementById('checkinBtn');
+    const checkinModal = document.getElementById('checkinModal');
+    const closeCheckinBtn = document.getElementById('closeCheckinBtn');
     
     // Admin elements
     const adminLoginModal = document.getElementById('adminLoginModal');
@@ -85,13 +103,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const DEFAULT_ADMIN_PASSWORD = '123456';
     
     // 默认设置
-    const defaultSettings = {
+    const defaultApiSettings = {
         apiProvider: 'openai',
         apiKey: '',
         modelName: 'gpt-4o',
+        azureEndpoint: '',
         maxTokens: 2000,
-        temperature: 0.7,
-        usePoeApi: true // 是否使用系统默认API（即Poe API）
+        temperature: 0.7
     };
     
     // 初始化应用
@@ -101,6 +119,8 @@ document.addEventListener('DOMContentLoaded', function() {
         loadAdminSettings();
         setupLogoClickHandler();
         checkFirstTimeUser();
+        checkDailyCheckin(); // 检查签到状态
+        updateCheckinButton(); // 更新签到按钮状态
     }
     
     // 检查是否首次使用
@@ -187,7 +207,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // 初始化新用户数据
             userObj = {
                 usageCount: 10, // 每个新用户有10次免费使用机会
-                history: []
+                history: [],
+                lastCheckin: null // 上次签到时间
             };
             saveUserData(userObj);
         }
@@ -224,10 +245,70 @@ document.addEventListener('DOMContentLoaded', function() {
         return true;
     }
     
+    // 增加使用次数
+    function incrementUsageCount(amount = 1) {
+        const userData = loadUserData();
+        userData.usageCount += amount;
+        saveUserData(userData);
+        updateUsageCounter(userData.usageCount);
+        return true;
+    }
+    
     // 获取当前可用次数
     function getAvailableUsageCount() {
         const userData = loadUserData();
         return userData.usageCount;
+    }
+    
+    // 检查是否可以签到（每天只能签到一次）
+    function canCheckin() {
+        const userData = loadUserData();
+        const now = new Date();
+        const today = now.toDateString();
+        
+        if (!userData.lastCheckin) {
+            return true;
+        }
+        
+        const lastCheckinDate = new Date(userData.lastCheckin);
+        const lastCheckinDay = lastCheckinDate.toDateString();
+        
+        return lastCheckinDay !== today;
+    }
+    
+    // 执行签到操作
+    function performCheckin() {
+        if (!canCheckin()) {
+            alert('今天已经签到过了，明天再来吧！');
+            return;
+        }
+        
+        const userData = loadUserData();
+        userData.lastCheckin = new Date().toISOString();
+        incrementUsageCount(1); // 签到增加1次使用次数
+        saveUserData(userData);
+        
+        // 显示签到成功弹窗
+        checkinModal.classList.add('show');
+        
+        // 更新签到按钮状态
+        updateCheckinButton();
+    }
+    
+    // 更新签到按钮状态
+    function updateCheckinButton() {
+        if (!canCheckin() && checkinBtn) {
+            checkinBtn.classList.add('opacity-50');
+            checkinBtn.style.pointerEvents = 'none';
+        } else if (checkinBtn) {
+            checkinBtn.classList.remove('opacity-50');
+            checkinBtn.style.pointerEvents = 'auto';
+        }
+    }
+    
+    // 检查每日签到状态
+    function checkDailyCheckin() {
+        updateCheckinButton();
     }
     
     // 添加扫描历史
@@ -354,6 +435,24 @@ document.addEventListener('DOMContentLoaded', function() {
             adminSettingsForm.addEventListener('submit', (e) => {
                 e.preventDefault();
                 saveAdminSettings();
+            });
+        }
+        
+        // 签到相关事件
+        if (checkinBtn) {
+            checkinBtn.addEventListener('click', performCheckin);
+        }
+        
+        if (closeCheckinBtn) {
+            closeCheckinBtn.addEventListener('click', () => {
+                checkinModal.classList.remove('show');
+            });
+        }
+        
+        if (dailyCheckinBtn) {
+            dailyCheckinBtn.addEventListener('click', () => {
+                usageExhaustedModal.classList.remove('show');
+                performCheckin();
             });
         }
     }
@@ -674,16 +773,28 @@ document.addEventListener('DOMContentLoaded', function() {
     // 设置相关的功能
     settingsBtn.addEventListener('click', () => {
         settingsModal.classList.add('show');
+        loadApiSettings();
     });
     
     closeSettingsBtn.addEventListener('click', () => {
         settingsModal.classList.remove('show');
     });
     
+    // API设置事件
+    apiProvider.addEventListener('change', () => {
+        updateApiSettings();
+    });
+    
     // 点击模态框外部关闭
     settingsModal.addEventListener('click', (e) => {
         if (e.target === settingsModal) {
             settingsModal.classList.remove('show');
+        }
+    });
+    
+    checkinModal.addEventListener('click', (e) => {
+        if (e.target === checkinModal) {
+            checkinModal.classList.remove('show');
         }
     });
     
@@ -699,6 +810,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
+    // 显示/隐藏高级选项
+    toggleAdvancedBtn.addEventListener('click', () => {
+        const isHidden = advancedOptions.classList.contains('hidden');
+        if (isHidden) {
+            advancedOptions.classList.remove('hidden');
+            toggleAdvancedBtn.querySelector('svg').style.transform = 'rotate(180deg)';
+        } else {
+            advancedOptions.classList.add('hidden');
+            toggleAdvancedBtn.querySelector('svg').style.transform = 'rotate(0)';
+        }
+    });
+    
     // 深色模式切换
     darkModeToggle.addEventListener('change', function() {
         if (this.checked) {
@@ -710,29 +833,161 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
+    // 动态更新温度值显示
+    temperature.addEventListener('input', () => {
+        temperatureValue.textContent = temperature.value;
+    });
+    
     // 用量用尽相关
     configApiBtn.addEventListener('click', () => {
         usageExhaustedModal.classList.remove('show');
-        alert('目前没有开放API配置，请联系管理员。');
+        settingsModal.classList.add('show');
+        loadApiSettings();
     });
+    
+    // 更新API设置UI
+    function updateApiSettings() {
+        // 显示/隐藏Azure特有设置
+        if (apiProvider.value === 'azure') {
+            azureSettings.classList.remove('hidden');
+        } else {
+            azureSettings.classList.add('hidden');
+        }
+        
+        // 更新模型选项
+        updateModelOptions();
+    }
+    
+    // 根据API提供商更新模型选项
+    function updateModelOptions() {
+        modelName.innerHTML = ''; // 清空现有选项
+        
+        switch(apiProvider.value) {
+            case 'openai':
+                addModelOption('gpt-4o', 'GPT-4o');
+                addModelOption('gpt-4', 'GPT-4');
+                addModelOption('gpt-3.5-turbo', 'GPT-3.5 Turbo');
+                break;
+            case 'anthropic':
+                addModelOption('claude-3-opus', 'Claude 3 Opus');
+                addModelOption('claude-3-sonnet', 'Claude 3 Sonnet');
+                addModelOption('claude-3-haiku', 'Claude 3 Haiku');
+                break;
+            case 'gemini':
+                addModelOption('gemini-1.5-pro', 'Gemini 1.5 Pro');
+                addModelOption('gemini-1.5-flash', 'Gemini 1.5 Flash');
+                break;
+            case 'azure':
+                addModelOption('gpt-4', 'GPT-4');
+                addModelOption('gpt-4o', 'GPT-4o');
+                addModelOption('gpt-35-turbo', 'GPT-3.5 Turbo');
+                break;
+        }
+    }
+    
+    // 添加模型选项
+    function addModelOption(value, text) {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = text;
+        modelName.appendChild(option);
+    }
+    
+    // 加载API设置
+    function loadApiSettings() {
+        const savedSettings = localStorage.getItem('apiSettings');
+        let settings = defaultApiSettings;
+        
+        if (savedSettings) {
+            settings = JSON.parse(savedSettings);
+        }
+        
+        // 设置表单值
+        apiProvider.value = settings.apiProvider || defaultApiSettings.apiProvider;
+        apiKey.value = settings.apiKey || '';
+        
+        // 更新UI
+        updateApiSettings();
+        
+        // 尝试设置模型（可能需要等待选项加载）
+        setTimeout(() => {
+            try {
+                modelName.value = settings.modelName || defaultApiSettings.modelName;
+            } catch (e) {
+                console.log('无法设置模型名称，使用默认值');
+            }
+        }, 100);
+        
+        azureEndpoint.value = settings.azureEndpoint || '';
+        maxTokens.value = settings.maxTokens || defaultApiSettings.maxTokens;
+        temperature.value = settings.temperature || defaultApiSettings.temperature;
+        temperatureValue.textContent = temperature.value;
+    }
+    
+    // 保存API设置
+    apiConfigForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const settings = {
+            apiProvider: apiProvider.value,
+            apiKey: apiKey.value,
+            modelName: modelName.value,
+            azureEndpoint: azureEndpoint.value,
+            maxTokens: parseInt(maxTokens.value),
+            temperature: parseFloat(temperature.value)
+        };
+        
+        localStorage.setItem('apiSettings', JSON.stringify(settings));
+        
+        // 显示保存成功消息
+        const successMsg = document.createElement('div');
+        successMsg.className = 'fade-in p-2 mb-3 bg-green-50 dark:bg-green-900 dark:bg-opacity-20 text-green-600 dark:text-green-400 rounded-lg text-center text-sm';
+        successMsg.textContent = 'API设置已保存';
+        
+        apiConfigForm.insertBefore(successMsg, apiConfigForm.firstChild);
+        
+        // 3秒后移除消息
+        setTimeout(() => {
+            successMsg.remove();
+        }, 3000);
+    });
+    
+    // 重置API设置
+    resetApiSettingsBtn.addEventListener('click', () => {
+        if (confirm('确定要重置API设置吗？所有自定义设置将丢失。')) {
+            localStorage.removeItem('apiSettings');
+            loadApiSettings();
+        }
+    });
+    
+    // 获取用户API设置
+    function getUserApiSettings() {
+        const savedSettings = localStorage.getItem('apiSettings');
+        if (savedSettings) {
+            return JSON.parse(savedSettings);
+        }
+        return null;
+    }
     
     // 分析按钮点击处理
     analyzeBtn.addEventListener('click', async () => {
         if (!selectedFile) return;
         
-        // 检查是否有足够的分析次数
+        // 检查是否有足够的分析次数或API配置
+        const userApiSettings = getUserApiSettings();
         const adminApiKey = getAdminApiKey();
+        const hasUserApi = userApiSettings && userApiSettings.apiKey && userApiSettings.apiKey.length > 0;
         const hasAdminApi = adminApiKey && adminApiKey.length > 0;
         const remainingUsage = getAvailableUsageCount();
         
-        if (!hasAdminApi && remainingUsage <= 0) {
+        if (!hasUserApi && !hasAdminApi && remainingUsage <= 0) {
             // 显示提示用户次数用完的弹窗
             usageExhaustedModal.classList.add('show');
             return;
         }
         
-        // 如果有次数，减少使用次数
-        if (!hasAdminApi) {
+        // 如果有次数且没有自定义API，减少使用次数
+        if (!hasUserApi && !hasAdminApi) {
             decrementUsageCount();
         }
         
@@ -742,21 +997,25 @@ document.addEventListener('DOMContentLoaded', function() {
         analyzeBtn.disabled = true;
         
         try {
+            // 使用用户配置的API
+            if (hasUserApi) {
+                await analyzeWithCustomApi(selectedFile, userApiSettings);
+            }
             // 使用管理员API
-            if (hasAdminApi) {
+            else if (hasAdminApi) {
                 await analyzeWithAdminApi(selectedFile);
             }
-            // 使用Poe API或模拟结果
+            // 使用Poe API
             else if (window.Poe) {
                 await analyzeWithPoeApi(selectedFile);
             }
-            // 所有API都不可用，但显示Demo结果
+            // 所有API都不可用
             else {
-                showMockedResult();
+                showError('无法进行分析，没有可用的API。请在设置中配置您的API密钥或联系管理员。');
             }
         } catch (error) {
-            console.error('Error:', error);
-            showError('分析过程中出现错误，请重试。');
+            console.error('分析错误:', error);
+            showError('分析过程中出现错误：' + (error.message || '未知错误'));
             loadingSection.classList.add('hidden');
             analyzeBtn.disabled = false;
         }
@@ -857,9 +1116,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             );
         } catch (err) {
-            // 如果没有Poe API或出错，显示模拟结果
             console.error("Error using Poe API:", err);
-            showMockedResult();
+            throw new Error("Poe API调用失败: " + err.message);
         }
     }
     
@@ -978,6 +1236,38 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     };
                     break;
+                case 'azure':
+                    // Azure OpenAI API 请求
+                    const azureEndpoint = settings.azureEndpoint.endsWith('/') ? 
+                        settings.azureEndpoint.slice(0, -1) : settings.azureEndpoint;
+                    
+                    apiUrl = `${azureEndpoint}/openai/deployments/${settings.modelName}/chat/completions?api-version=2023-12-01-preview`;
+                    headers = {
+                        'Content-Type': 'application/json',
+                        'api-key': settings.apiKey
+                    };
+                    requestData = {
+                        messages: [
+                            {
+                                role: "user",
+                                content: [
+                                    {
+                                        type: "text", 
+                                        text: promptText
+                                    },
+                                    {
+                                        type: "image_url",
+                                        image_url: {
+                                            url: base64Image
+                                        }
+                                    }
+                                ]
+                            }
+                        ],
+                        max_tokens: settings.maxTokens || 2000,
+                        temperature: settings.temperature || 0.7
+                    };
+                    break;
                 default:
                     throw new Error('不支持的API提供商');
             }
@@ -998,7 +1288,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 let content = '';
                 
                 // 根据不同API提供商提取响应内容
-                if (settings.apiProvider === 'openai') {
+                if (settings.apiProvider === 'openai' || settings.apiProvider === 'azure') {
                     content = data.choices[0].message.content;
                 } else if (settings.apiProvider === 'anthropic') {
                     content = data.content[0].text;
@@ -1010,13 +1300,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 processAnalysisResult(content);
             } catch (error) {
                 console.error('API请求错误:', error);
-                
-                // 如果API请求失败，显示模拟结果
-                showMockedResult();
+                throw new Error(`API请求错误: ${error.message}`);
             }
         } catch (err) {
             console.error('API配置错误:', err);
-            showMockedResult();
+            throw new Error(`API配置错误: ${err.message}`);
         }
     }
     
@@ -1050,49 +1338,6 @@ document.addEventListener('DOMContentLoaded', function() {
         analyzeBtn.disabled = false;
     }
     
-    // 当无API可用时显示模拟结果
-    function showMockedResult() {
-        const mockContent = `
-## 食品配料分析结果
-
-### 主要配料清单
-- 小麦粉
-- 白砂糖
-- 植物油
-- 食用盐
-- 酵母
-
-### 添加剂成分及作用
-- **柠檬酸（E330）**：用作酸味剂和抗氧化剂
-- **山梨酸钾（E202）**：防腐剂
-- **二氧化钛（E171）**：着色剂，使产品呈现白色
-- **焦糖色（E150）**：着色剂，用于调整颜色
-
-### 有害添加剂分析
-**二氧化钛（E171）** 是一种有潜在风险的添加剂。近年研究表明，二氧化钛纳米颗粒可能对人体健康造成负面影响，欧盟食品安全局已将其列为不再被认为安全的食品添加剂。长期摄入可能增加肠胃炎症风险。
-
-### 常见过敏原
-本产品含有**小麦（麸质）**，不适合麸质过敏人群食用。
-
-### 适宜人群建议
-- **孕妇**：建议少量食用，注意二氧化钛的存在
-- **儿童**：不建议频繁食用，特别是含有人工着色剂的食品可能影响儿童注意力
-- **老年人**：适量食用，关注钠含量
-- **糖尿病患者**：不适合，含有较高糖分
-
-### 健康评级：2星 ⭐⭐☆☆☆
-这款食品含有多种添加剂，尤其是二氧化钛这类有争议的成分，营养价值较低。
-
-### 总体食用建议
-1. 建议偶尔少量食用，不宜长期大量摄入
-2. 有过敏体质者应特别注意是否含有过敏原
-3. 儿童和孕妇应尽量选择更天然、添加剂更少的替代品
-4. 如有特殊健康问题，请在食用前咨询医生意见
-`;
-
-        processAnalysisResult(mockContent);
-    }
-    
     // 辅助函数：将File对象转换为base64
     function fileToBase64(file) {
         return new Promise((resolve, reject) => {
@@ -1104,8 +1349,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function showError(message) {
-        resultContent.innerHTML = `<div class="p-4 bg-red-50 dark:bg-red-900 dark:bg-opacity-20 text-red-600 dark:text-red-400 rounded-lg">${message}</div>`;
+        loadingSection.classList.add('hidden');
+        resultContent.innerHTML = `
+            <div class="p-4 bg-red-50 dark:bg-red-900 dark:bg-opacity-20 text-red-600 dark:text-red-400 rounded-lg">
+                <h3 class="font-semibold mb-2">分析失败</h3>
+                <p>${message}</p>
+                <p class="mt-2 text-sm">您可以尝试：</p>
+                <ul class="list-disc ml-5 mt-1 text-sm">
+                    <li>检查您的网络连接</li>
+                    <li>确保上传的是清晰的配料表图片</li>
+                    <li>在设置中配置API密钥</li>
+                    <li>每日签到获取更多分析次数</li>
+                </ul>
+            </div>
+        `;
         resultSection.classList.remove('hidden');
+        analyzeBtn.disabled = false;
     }
     
     // 初始化
