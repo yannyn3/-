@@ -18,14 +18,10 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body class="dark-mode light-mode min-h-screen px-4 pb-20 pt-6">
+    <!-- 首页/扫描页面 -->
     <main id="homeTab" class="max-w-md mx-auto">
         <header class="text-center mb-5 relative">
-            <div class="absolute left-0 top-0 flex items-center gap-1">
-                <button id="checkinBtn" class="p-2 rounded-full bg-green-500 text-white hover:bg-green-600 transition-colors" aria-label="签到" title="每日签到">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                    </svg>
-                </button>
+            <div class="absolute left-0 top-0 flex items-center">
                 <span id="usageCounter" class="usage-counter">剩余次数: 10</span>
             </div>
 
@@ -65,7 +61,7 @@
                     </div>
                     <div class="flex items-start">
                         <div class="bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0">4</div>
-                        <p>每日签到获得额外分析次数</p>
+                        <p>在"我的"页面每日签到获得额外分析次数</p>
                     </div>
                     <div class="mt-2 text-sm text-gray-500">
                         每个用户可免费使用10次，使用前请确保配料表文字清晰可见
@@ -152,13 +148,16 @@
     <!-- 历史记录页面 -->
     <div id="historyTab" class="max-w-md mx-auto hidden">
         <div class="card mb-5">
-            <div class="card-header flex items-center">
-                <button id="backFromHistoryBtn" class="mr-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                    </svg>
-                </button>
-                <span>历史记录</span>
+            <div class="card-header flex items-center justify-between">
+                <div class="flex items-center">
+                    <button id="backFromHistoryBtn" class="mr-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+                    <span>历史记录</span>
+                </div>
+                <button id="clearHistoryBtn" class="text-sm text-red-500 hover:text-red-600 transition-colors">清空历史</button>
             </div>
             <div class="card-content p-0">
                 <div id="historyList" class="divide-y divide-gray-200 dark:divide-gray-700">
@@ -169,56 +168,89 @@
         </div>
     </div>
 
-    <!-- 管理员设置页面 -->
-    <div id="adminTab" class="max-w-md mx-auto hidden">
+    <!-- 个人中心页面 -->
+    <div id="userTab" class="max-w-md mx-auto hidden">
         <div class="card mb-5">
-            <div class="card-header flex items-center">
-                <button id="backFromAdminBtn" class="mr-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                    </svg>
-                </button>
-                <span>管理员设置</span>
-            </div>
+            <div class="card-header">个人中心</div>
             <div class="card-content">
-                <form id="adminSettingsForm">
-                    <!-- API 设置部分 -->
-                    <div class="mb-5">
-                        <h3 class="text-lg font-semibold mb-3">API 设置</h3>
-                        
-                        <div class="mb-4">
-                            <label for="defaultApiProvider" class="form-label">默认 API 提供商</label>
-                            <select id="defaultApiProvider" class="form-input form-select">
-                                <option value="openai">OpenAI</option>
-                                <option value="anthropic">Anthropic (Claude)</option>
-                                <option value="gemini">Google Gemini</option>
-                                <option value="deepseek">DeepSeek</option>
-                                <option value="poe">Poe API</option>
-                            </select>
-                        </div>
-                        
-                        <div class="mb-4">
-                            <label for="defaultModelName" class="form-label">默认模型</label>
-                            <select id="defaultModelName" class="form-input form-select">
-                                <option value="gpt-4o">GPT-4o</option>
-                                <option value="gpt-4">GPT-4</option>
-                                <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                                <option value="claude-3-opus">Claude 3 Opus</option>
-                                <option value="claude-3-sonnet">Claude 3 Sonnet</option>
-                                <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
-                                <option value="deepseek-vision">DeepSeek Vision</option>
-                            </select>
-                        </div>
-                        
-                        <div class="mb-4">
-                            <label for="adminApiKey" class="form-label">API 密钥</label>
-                            <input type="password" id="adminApiKey" class="form-input" placeholder="输入默认API密钥">
-                            <p class="text-xs text-secondary-color mt-1">此密钥将用于所有用户</p>
+                <!-- 每日签到区域 -->
+                <div class="bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20 rounded-lg p-4 mb-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-semibold flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            每日签到
+                        </h3>
+                        <div id="checkinStatus" class="text-xs py-1 px-2 bg-green-100 dark:bg-green-900 dark:bg-opacity-30 text-green-600 dark:text-green-400 rounded-full">
+                            今日已签到
                         </div>
                     </div>
+                    <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">每天签到可获得1次免费分析机会，连续签到有额外奖励！</p>
+                    <div class="flex items-center justify-between">
+                        <div class="flex checkin-circles space-x-1">
+                            <!-- 由JS动态生成 -->
+                        </div>
+                        <button id="userCheckinBtn" class="btn btn-primary py-1.5 px-4 text-sm">签到</button>
+                    </div>
+                </div>
+                
+                <!-- 分析次数统计 -->
+                <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-5">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-semibold flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary-color mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                            分析次数
+                        </h3>
+                        <span id="userRemainingScans" class="font-bold text-lg text-primary-color">10</span>
+                    </div>
+                    <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">已累计分析 <span id="totalScans">0</span> 次</p>
+                </div>
+                
+                <!-- 其他功能 -->
+                <div class="space-y-3">
+                    <!-- 历史记录 -->
+                    <div id="userHistoryBtn" class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm cursor-pointer">
+                        <div class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary-color mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>扫描历史</span>
+                        </div>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </div>
                     
-                    <button type="submit" class="btn btn-primary py-2 px-4 w-full mt-4">保存设置</button>
-                </form>
+                    <!-- 深色模式开关 -->
+                    <div class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                        <div class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary-color mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                            </svg>
+                            <span>深色模式</span>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="darkModeToggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    
+                    <!-- 关于我们 -->
+                    <div id="aboutBtn" class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm cursor-pointer">
+                        <div class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary-color mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>关于我们</span>
+                        </div>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -237,7 +269,9 @@
             <div class="card-content">
                 <!-- API 配置部分 -->
                 <form id="apiConfigForm" class="mb-5">
-                    <h3 class="text-lg font-semibold mb-3">API 设置</h3>
+                    <h3 class="text-lg font-semibold mb-3">API 设置 <span class="text-xs text-gray-500">(可选)</span></h3>
+                    <p class="text-sm text-gray-500 mb-4">您可以使用自己的API密钥以获得更好的体验，或者继续使用内置的API。</p>
+                    
                     <div class="mb-4">
                         <label for="apiProvider" class="form-label">API 提供商</label>
                         <select id="apiProvider" class="form-input form-select">
@@ -311,36 +345,9 @@
                 
                 <hr class="my-4 border-gray-200 dark:border-gray-700">
                 
-                <div class="space-y-3">
-                    <!-- 历史记录 -->
-                    <div id="historyBtn" class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm cursor-pointer">
-                        <div class="flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary-color mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <span>扫描历史</span>
-                        </div>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                        </svg>
-                    </div>
-                    
-                    <!-- 深色模式开关 -->
-                    <div class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-                        <div class="flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary-color mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                            </svg>
-                            <span>深色模式</span>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="darkModeToggle">
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                    
+                <div class="space-y-3">                    
                     <!-- 关于我们 -->
-                    <div id="aboutBtn" class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm cursor-pointer">
+                    <div id="settingsAboutBtn" class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm cursor-pointer">
                         <div class="flex items-center">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary-color mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -387,6 +394,23 @@
         </div>
     </div>
 
+    <!-- 清空历史确认弹窗 -->
+    <div id="clearHistoryConfirmModal" class="modal">
+        <div class="modal-content text-center p-6" style="max-width: 320px;">
+            <div class="text-red-500 mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            </div>
+            <h3 class="text-xl font-bold mb-2">确认清空历史</h3>
+            <p class="mb-5">所有历史记录将被永久删除，确定要继续吗？</p>
+            <div class="flex space-x-3">
+                <button id="cancelClearHistoryBtn" class="btn btn-secondary flex-1 py-2">取消</button>
+                <button id="confirmClearHistoryBtn" class="btn btn-danger flex-1 py-2">确认删除</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 全局加载状态 -->
     <div id="globalLoading" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 hidden">
         <div class="bg-white dark:bg-gray-800 p-5 rounded-lg shadow-lg flex flex-col items-center">
@@ -409,32 +433,13 @@
             </svg>
             <span>历史</span>
         </div>
-    </nav>
-
-    <!-- 管理员登录入口 (隐藏, 点击logo区域5次触发) -->
-    <div id="adminLoginModal" class="modal">
-        <div class="modal-content text-center p-6" style="max-width: 320px;">
-            <h3 class="text-xl font-bold mb-4">管理员登录</h3>
-            <div class="mb-4">
-                <input type="password" id="adminPassword" class="form-input w-full mb-3" placeholder="请输入管理员密码">
-                <div id="captchaContainer" class="mb-3">
-                    <div class="flex items-center">
-                        <div id="captchaDisplay" class="flex-1 bg-gray-100 dark:bg-gray-700 p-2 rounded-l font-mono font-bold tracking-widest text-center"></div>
-                        <button id="refreshCaptchaBtn" class="px-2 py-2 bg-gray-200 dark:bg-gray-600 rounded-r">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                        </button>
-                    </div>
-                    <input type="text" id="captchaInput" class="form-input w-full mt-2" placeholder="请输入验证码">
-                </div>
-            </div>
-            <div class="flex space-x-3">
-                <button id="cancelAdminLoginBtn" class="btn btn-secondary flex-1 py-2">取消</button>
-                <button id="confirmAdminLoginBtn" class="btn btn-primary flex-1 py-2">登录</button>
-            </div>
+        <div class="bottom-nav-item" data-tab="userTab">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            <span>我的</span>
         </div>
-    </div>
+    </nav>
 
     <!-- Service Worker注册和主要JavaScript -->
     <script src="app.js"></script>
